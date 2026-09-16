@@ -1,0 +1,20 @@
+# Copyright by BeeX [2026]
+# The one viz node. Loaded into /viz. Lengths m, angles deg. Colours are [r, g, b, a] from 0 to 1.
+
+arm_body_rate_hz: 2.0                    # collision body redraws per second
+blade_draw_step_m: 0.005                 # blade samples drawn this far apart, coarser than the planner checks
+path_draw_step_deg: 2.0                  # planned path drawn at this joint spacing
+grasp_pose_size_m: 0.006                 # diameter of the dots marking grasp poses
+chosen_grasp_length_m: 0.05              # length of the arrow and bar marking the chosen grasp
+line_width_m: 0.003
+floor_size_m: 1.0                        # side of the square drawn at the safety floor
+
+colours:
+  arm_body: [0.2, 0.6, 1.0, 0.35]
+  handle: [0.1, 0.8, 0.2, 1.0]
+  rope: [0.9, 0.2, 0.2, 1.0]
+  obstacle: [0.6, 0.6, 0.6, 1.0]
+  handle_cell: [0.1, 0.8, 0.2, 1.0]
+  chosen_grasp: [1.0, 0.8, 0.0, 1.0]
+  planned_path: [1.0, 0.5, 0.0, 1.0]
+  floor: [0.4, 0.3, 0.2, 0.3]

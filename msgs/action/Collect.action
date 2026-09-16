@@ -1,0 +1,8 @@
+# Collect frames from the camera topics and turn them into candidates and an obstacle map.
+---
+CloudResult cloud
+---
+string COLLECTING=collecting
+string PROCESSING=processing
+string stage
+uint32 frames_collected

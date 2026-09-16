@@ -1,0 +1,19 @@
+# Copyright by BeeX [2026]
+# Camera mounting and lens. Loaded into /camera and read by the URDF. Lengths m, angles deg.
+#
+# arm_base -> camera_mount: where the camera body sits. camera_mount has x along the view, y left, z up.
+# camera_mount -> camera_link: the axes the camera publishes in. camera_link has x right, y up, and looks down -z.
+
+frame: camera_link                       # frame_id on the cloud and the grasp poses
+mount_frame: camera_mount
+mount_position_m: [0.1, 0.05, 0.0]       # camera_mount origin in arm_base, fitted by hand to the recorded bag
+mount_rpy_deg: [90.0, -90.0, 0.0]        # camera_mount orientation in arm_base
+frame_rpy_deg: [90.0, 0.0, -90.0]        # camera_link orientation in camera_mount
+
+intrinsics:                              # pixel u = cx + fx * x / -z, v = cy - fy * y / -z; fitted to the bag to 0.0001 px
+  width_px: 800
+  height_px: 600
+  fx_px: 479.2662
+  fy_px: 479.2662
+  cx_px: 397.9827
+  cy_px: 322.8405

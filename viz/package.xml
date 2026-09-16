@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>viz</name>
+  <version>0.1.0</version>
+  <description>The one visualisation node: collision body, safety floor, obstacle map, handle and rope poses, chosen grasp and planned path.</description>
+  <maintainer email="bolin@todo.todo">nknight</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>bx_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>roslib</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>eigen</depend>
+  <depend>params</depend>
+  <depend>kine</depend>
+  <depend>msgs</depend>
+</package>

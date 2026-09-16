@@ -1,0 +1,60 @@
+# Copyright by BeeX [2026]
+# Point cloud processing. Loaded into /cloud. Stages are switched on and off by the launch switches.
+
+frames_to_collect: 5                     # frames gathered per attempt when either averaging switch is on, otherwise 1
+frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
+reach_margin_m: 0.05                     # added to the jaw tip reach when cropping the cloud around the arm
+voxel_size_m: 0.005                      # obstacle map resolution; 10 mm leaves the handle half blocked for the jaws
+
+pose_axes:                               # which column of a grasp pose rotation means what
+  approach_column: 0
+  bar_column: 1
+
+outlier_filter:                          # flying pixel test on the depth image
+  depth_tolerance_m: 0.003               # neighbour depth must agree to this, after removing the local slope
+  min_agreeing_neighbours: 5             # of the 8 neighbours
+  slope_window_px: 5                     # window the local slope is fitted over
+
+occupancy:
+  min_points_per_voxel: 2                # a voxel with fewer points only counts if the camera could not see through it
+  free_space_tolerance_m: 0.005          # a voxel is seen through when the measured surface is this far behind it
+
+handle_region:                           # voxels this close to a handle pose are handle surface, not obstacle
+  radius_m: 0.005
+  max_pose_gap_m: 0.015                  # consecutive poses closer than this are joined along the bar
+
+corridor_carving:                        # obstacle voxels in front of each handle pose, along its approach, become handle
+  length_m: 0.04
+  radius_m: 0.02
+
+handle_classifier:
+  method: curvature                      # curvature: logistic regression on how much the pose trace bends
+  curvature:
+    threshold: 0.65                      # score at or above this is handle
+    curvature_chord_m: 0.08              # arc length either side used to measure 3D curvature
+    bend_chord_m: 0.05                   # arc length either side used to measure bend in the image
+    smoothing_window_m: 0.06             # median window along the trace
+    min_chord_fraction: 0.7              # a curvature chord shorter than this fraction of its length is ignored
+    min_bend_span_px: 3.0                # an image chord shorter than this is ignored
+    feature_mean: [2.2619414139736507, 1.1477051149648436]
+    feature_std: [0.9793411571819177, 0.9437532509915271]
+    weights: [0.19815769261425545, 0.5976326457184641]
+    bias: -0.6448103858399833
+
+candidate_averaging:
+  method: consensus                      # consensus: keep only spots enough frames agree on, averaged
+  consensus:
+    min_agreeing_frames: 3
+    match_distance_m: 0.010              # a frame's crossing must be this close to count
+    max_axis_angle_deg: 20.0             # a frame's bar must cross within this angle
+    max_pose_gap_m: 0.015                # consecutive poses closer than this form one bar
+    end_tolerance_m: 0.005               # a bar end this close to the plane still counts as crossing
+    outlier_distance_m: 0.006            # crossings further than this from the median are dropped
+    max_spread_m: 0.003                  # rms spread of the agreeing crossings
+    duplicate_distance_m: 0.005          # spots closer than this are the same spot
+    max_drift_m: 0.003                   # scene movement over the frames above this rejects the whole set
+    drift_direction_ratio: 0.2           # drift is only estimated along directions constrained at least this well, relative to the best
+    drift_significance_sigmas: 3.0       # drift within this many standard errors of zero is treated as noise
+
+obstacle_averaging:
+  min_frames_occupied: 3                 # a voxel is an obstacle when this many frames saw it occupied

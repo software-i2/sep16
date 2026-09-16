@@ -1,0 +1,18 @@
+# Copyright by BeeX [2026]
+# Serial link to the arm. Loaded into /driver. The launch switch sim sets /driver/simulated.
+
+serial_port: /dev/ttyUSB0
+baud_rate: 115200
+poll_rate_hz: 10.0                       # joint positions read and published per second
+reply_timeout_s: 0.05                    # wait for one joint to answer a request
+connect_attempts: 5                      # wake-up tries at start before giving up
+connect_retry_s: 2.0                     # pause between wake-up tries
+connect_nudge_speed_deg_s: 0.573         # tiny wrist speed sent to wake the arm up
+home_joint_speed_deg_s: 28.6479          # ramp speed of driver/home for the rotary joints
+home_jaw_speed_m_s: 0.010                # ramp speed of driver/home for the jaw
+
+device_ids: {jaw: 1, wrist: 2, elbow: 3, shoulder: 4, base: 5}  # serial address of each joint
+
+simulated_arm:                           # stands in for the serial port when simulated is true
+  joint_speed_deg_s: 28.6479
+  jaw_speed_m_s: 0.010

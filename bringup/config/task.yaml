@@ -1,0 +1,13 @@
+# Copyright by BeeX [2026]
+# The pick state machine. Loaded into /task. Lengths m, times s.
+
+rate_hz: 5.0                             # state machine ticks per second
+server_wait_s: 5.0                       # how long to wait for the cloud, planner and executor to be up
+retry_delay_s: 3.0                       # pause before collecting again when nothing could be planned
+max_attempts: 0                          # 0 keeps retrying until task/stop
+
+jaw:
+  settle_tolerance_m: 0.0001             # jaw readings within this of each other count as still
+  settle_time_s: 1.0                     # still for this long counts as settled
+  grabbed_margin_m: 0.0005               # settled at least this far short of fully closed means something is held
+  timeout_s: 5.0                         # finish without a grip verdict if the jaw has not settled by then

@@ -1,0 +1,5 @@
+# Copyright by BeeX [2026]
+# foxglove_bridge. Loaded into the foxglove node.
+
+port: 8765
+address: 0.0.0.0

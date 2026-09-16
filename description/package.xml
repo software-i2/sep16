@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>description</name>
+  <version>0.1.0</version>
+  <description>Reach Alpha 5 URDF and meshes, with the camera mounted from bringup/config/camera.yaml.</description>
+  <maintainer email="bolin@todo.todo">nknight</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>urdf</exec_depend>
+</package>

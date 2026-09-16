@@ -1,0 +1,6 @@
+# Plan a path from the current joints to the best candidate in the cloud result.
+CloudResult cloud
+---
+GraspPlan plan
+---
+uint32 goals_tried

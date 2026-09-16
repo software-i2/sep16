@@ -1,0 +1,30 @@
+# Copyright by BeeX [2026]
+# Every topic, service and action name. Loaded into /topics.
+
+camera_cloud: /pointcloud                # sensor_msgs/PointCloud2 from the camera
+camera_grasp_poses: /grasp_poses         # geometry_msgs/PoseArray from vision, same header stamp as the cloud
+
+joint_states: /joint_states              # sensor_msgs/JointState from the driver
+joint_targets: /driver/joint_targets     # sensor_msgs/JointState position targets to the driver
+
+driver_home: /driver/home                # std_srvs/Trigger: ramp to the home pose with the jaw open
+driver_open_jaw: /driver/open_jaw        # std_srvs/Trigger
+driver_close_jaw: /driver/close_jaw      # std_srvs/Trigger
+driver_standby: /driver/standby          # std_srvs/Trigger: release every joint
+
+cloud_collect: /cloud/collect            # msgs/Collect action
+cloud_result: /cloud/result              # msgs/CloudResult, latched
+planner_plan: /planner/plan              # msgs/Plan action
+planner_result: /planner/result          # msgs/PlanResult, latched
+executor_execute: /executor/execute      # msgs/Execute action
+
+task_start: /task/start                  # std_srvs/Trigger: run the whole pick
+task_stop: /task/stop                    # std_srvs/Trigger: stop everything and release the arm
+task_state: /task/state                  # msgs/TaskState, latched
+
+viz_arm_body: /viz/arm_body              # visualization_msgs/MarkerArray
+viz_floor: /viz/floor                    # visualization_msgs/Marker
+viz_obstacle_map: /viz/obstacle_map      # sensor_msgs/PointCloud2
+viz_grasp_poses: /viz/grasp_poses        # visualization_msgs/Marker
+viz_chosen_grasp: /viz/chosen_grasp      # visualization_msgs/MarkerArray
+viz_planned_path: /viz/planned_path      # visualization_msgs/Marker

@@ -1,0 +1,36 @@
+# Copyright by BeeX [2026]
+# Reach Alpha 5 geometry, joint limits and home pose. Loaded into /arm. Lengths m, angles deg.
+
+base_frame: arm_base                     # frame everything is planned in
+
+joint_names:                             # names on joint_states and in the URDF
+  base: axis_e
+  shoulder: axis_d
+  elbow: axis_c
+  wrist: axis_b
+  jaw: axis_a
+
+links:
+  base_to_base_axis_z_m: 0.0140          # arm_base origin up to the base rotation axis
+  base_axis_to_shoulder_x_m: -0.02       # base rotation axis to the shoulder pivot
+  base_axis_to_shoulder_z_m: 0.0330
+  shoulder_to_elbow_x_m: -0.04           # upper arm, shoulder pivot to elbow pivot
+  shoulder_to_elbow_z_m: -0.1453
+  elbow_frame_yaw_deg: 180.0             # 0 or 180; 180 reverses the elbow
+  elbow_to_wrist_x_m: 0.02               # forearm, elbow pivot to wrist pivot
+  elbow_to_wrist_z_m: 0.0330
+  wrist_to_jaw_mount_m: 0.09975          # wrist pivot to the jaw mount face, along the wrist axis
+
+joint_limits_deg:                        # vendor limits, in the angles the joints report
+  base: {min: 0.0, max: 349.6}
+  shoulder: {min: 0.0, max: 200.0}
+  elbow: {min: 0.0, max: 184.5}
+  wrist: {min: 0.0, max: 184.5}
+
+jaw_limits_m: {min: 0.0013, max: 0.0133} # fully closed, fully open
+
+home_deg: {base: 0.0, shoulder: 90.0, elbow: 0.0, wrist: 0.0}  # shoulder below ~80 drives the upper arm into the base housing
+
+joint_convention:                        # model angle = direction_sign * (reported angle - zero_offset)
+  zero_offset_deg: {base: 2.403, shoulder: 0.0, elbow: 0.0, wrist: 0.0}
+  direction_sign: {base: 1, shoulder: 1, elbow: 1, wrist: -1}

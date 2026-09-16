@@ -1,0 +1,24 @@
+# catkin workspace output
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+
+# BEEX_CMAKE writes binaries and libraries next to each package
+bin/
+lib/
+
+# python
+__pycache__/
+*.py[cod]
+
+# recorded data
+*.bag
+*.bag.active
+data/
+
+# editors
+.vscode/
+.idea/
+*.swp
