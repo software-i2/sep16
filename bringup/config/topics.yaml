@@ -15,7 +15,7 @@ driver_standby: /driver/standby          # std_srvs/Trigger: release every joint
 cloud_collect: /cloud/collect            # msgs/Collect action
 cloud_result: /cloud/result              # msgs/CloudResult, latched
 planner_plan: /planner/plan              # msgs/Plan action
-planner_result: /planner/result          # msgs/PlanResult, latched
+planner_result: /planner/result          # msgs/GraspPlan, latched
 executor_execute: /executor/execute      # msgs/Execute action
 
 task_start: /task/start                  # std_srvs/Trigger: run the whole pick

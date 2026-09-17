@@ -5,7 +5,7 @@ safety_floor_z_m: -1.0e-6                # no part of the arm may go below this 
 link_radius_m: 0.020                     # collision radius around the upper arm, forearm, wrist tube and palm
 link_sample_step_m: 0.002                # spacing of collision samples along each link
 blade_sample_step_m: 0.0025              # spacing of collision samples over the jaw blades
-grasp_point_from_mount_m: 0.065          # where the handle sits between the blades: 0.040 is the throat, 0.0969 the tips
+grasp_point_from_mount_m: 0.050          # where the handle sits between the blades: 0.040 is the throat, 0.0969 the tips
 max_approach_deviation_deg: 0.0          # 0 turns the check off; otherwise the jaw must come in within this angle of the candidate's approach
 start_tolerance_deg: 1.5                 # a start reading this far past a joint limit is treated as on the limit
 joint_state_timeout_s: 0.5               # the start pose must come from joint_states newer than this
