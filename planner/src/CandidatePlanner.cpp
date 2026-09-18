@@ -75,8 +75,17 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
 
     const GraspSettings grasp{config_.grasp_point_from_mount, config_.max_approach_deviation,
                               config_.joint_cost_weights};
+    const auto remaining = [&]() {
+        return config_.max_planning_time_s - std::chrono::duration<double>(Clock::now() - started).count();
+    };
+
     std::vector<GraspGoal> goals;
     for (size_t i = 0; i < candidates.size(); ++i) {
+        if (cancelled()) {
+            result.success = false;
+            result.summary = "cancelled";
+            return result;
+        }
         result.outcomes[i] = findGraspGoals(candidates[i], i, start, grasp, checker, goals);
     }
     std::sort(goals.begin(), goals.end(),
@@ -85,8 +94,7 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
     BiRrtStar rrt(checker, config_.rrt, config_.joint_cost_weights);
     int       paths_found = 0;
     for (const GraspGoal &goal : goals) {
-        if (paths_found >= config_.paths_to_compare
-            || std::chrono::duration<double>(Clock::now() - started).count() > config_.max_planning_time_s) {
+        if (paths_found >= config_.paths_to_compare || remaining() < config_.rrt.time_budget_s) {
             break;
         }
         if (cancelled()) {
@@ -97,7 +105,7 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
 
         ++result.goals_tried;
         JointPath corners;
-        if (!rrt.plan(start, goal.joints, corners)) {
+        if (!rrt.plan(start, goal.joints, corners, remaining())) {
             if (result.outcomes[goal.candidate] != Outcome::OK) {
                 result.outcomes[goal.candidate] = Outcome::NO_PATH;
             }

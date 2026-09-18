@@ -3,6 +3,7 @@
 #include <cloud/Occupancy.h>
 
 #include <algorithm>
+#include <array>
 #include <limits>
 
 namespace cloud {
@@ -65,17 +66,45 @@ std::vector<uint32_t> occupiedCells(const CameraFrame &frame, const CameraModel 
     return occupied;
 }
 
-std::vector<uint32_t> voteOccupied(const std::vector<std::vector<uint32_t>> &frames, long cell_count, int min_frames) {
-    std::vector<uint8_t> votes(static_cast<size_t>(cell_count), 0);
-    for (const std::vector<uint32_t> &frame : frames) {
-        for (uint32_t cell : frame) {
-            ++votes[cell];
+std::vector<uint32_t> voteOccupied(const std::vector<std::vector<uint32_t>> &frames, const VoxelGrid &grid,
+                                   int min_frames, int vote_radius) {
+    const size_t         cell_count = static_cast<size_t>(grid.cellCount());
+    std::vector<uint8_t> votes(cell_count, 0);
+    std::vector<uint8_t> counted(cell_count, 0);
+
+    std::vector<uint32_t> measured;
+    for (size_t k = 0; k < frames.size(); ++k) {
+        const uint8_t mark = static_cast<uint8_t>(k + 1);
+        for (uint32_t cell : frames[k]) {
+            measured.push_back(cell);
+            const std::array<long, 3> centre = grid.coordinatesOf(static_cast<long>(cell));
+            for (int dz = -vote_radius; dz <= vote_radius; ++dz) {
+                for (int dy = -vote_radius; dy <= vote_radius; ++dy) {
+                    for (int dx = -vote_radius; dx <= vote_radius; ++dx) {
+                        const long x = centre[0] + dx;
+                        const long y = centre[1] + dy;
+                        const long z = centre[2] + dz;
+                        if (x < 0 || y < 0 || z < 0 || x >= grid.size() || y >= grid.size() || z >= grid.size()) {
+                            continue;
+                        }
+                        const long neighbour = grid.cellAt(x, y, z);
+                        if (counted[neighbour] != mark) {
+                            counted[neighbour] = mark;
+                            ++votes[neighbour];
+                        }
+                    }
+                }
+            }
         }
     }
+
+    std::sort(measured.begin(), measured.end());
+    measured.erase(std::unique(measured.begin(), measured.end()), measured.end());
+
     std::vector<uint32_t> occupied;
-    for (long cell = 0; cell < cell_count; ++cell) {
+    for (uint32_t cell : measured) {
         if (votes[cell] >= min_frames) {
-            occupied.push_back(static_cast<uint32_t>(cell));
+            occupied.push_back(cell);
         }
     }
     return occupied;

@@ -17,8 +17,10 @@ std::vector<uint32_t> occupiedCells(const CameraFrame &frame, const CameraModel 
                                     double crop_radius, const DepthImage &depth, const OutlierFilter *filter,
                                     const std::vector<uint8_t> &handle_region, const OccupancySettings &settings);
 
-// Cells occupied in at least `min_frames` of the frames, sorted.
-std::vector<uint32_t> voteOccupied(const std::vector<std::vector<uint32_t>> &frames, long cell_count, int min_frames);
+// Cells occupied in at least `min_frames` of the frames, sorted. A frame votes for a cell when it saw any cell
+// within `vote_radius` voxels of it occupied, so drifting surfaces are not thinned; only measured cells are returned.
+std::vector<uint32_t> voteOccupied(const std::vector<std::vector<uint32_t>> &frames, const VoxelGrid &grid,
+                                   int min_frames, int vote_radius);
 
 }  // namespace cloud
 

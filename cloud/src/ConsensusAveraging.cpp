@@ -325,7 +325,7 @@ AveragedCandidates ConsensusAveraging::average(const std::vector<std::vector<Gra
     double drift          = 0.0;
     double standard_error = 0.0;
     estimateDrift(accepted, frames.size(), settings_, drift, standard_error);
-    const bool drifting = std::isfinite(drift) && drift > settings_.max_drift
+    const bool drifting = settings_.max_drift > 0.0 && std::isfinite(drift) && drift > settings_.max_drift
                           && !(drift <= settings_.drift_significance_sigmas * standard_error);
 
     const char *verdict = drifting ? "DRIFTING" : !accepted.empty() ? "OK" : (outliers + spread > 0) ? "NOISY" : "NONE";

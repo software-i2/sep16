@@ -85,7 +85,7 @@ CloudOutput CloudPipeline::process(const std::vector<CameraFrame> &frames) const
             per_frame.push_back(result.occupied);
             carve_from.insert(carve_from.end(), result.handle_poses.begin(), result.handle_poses.end());
         }
-        occupied = voteOccupied(per_frame, grid_.cellCount(), config_.min_frames_occupied);
+        occupied = voteOccupied(per_frame, grid_, config_.min_frames_occupied, config_.vote_radius_voxels);
     }
     carve_from.insert(carve_from.end(), output.candidates.begin(), output.candidates.end());
 

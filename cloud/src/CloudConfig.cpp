@@ -105,6 +105,9 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.min_frames_occupied = cloud.whole("obstacle_averaging/min_frames_occupied");
     cloud.require(c.min_frames_occupied > 0 && c.min_frames_occupied <= c.frames_to_collect,
                   "obstacle_averaging/min_frames_occupied", "between 1 and frames_to_collect");
+    c.vote_radius_voxels = cloud.whole("obstacle_averaging/vote_radius_voxels");
+    cloud.require(c.vote_radius_voxels >= 0 && c.vote_radius_voxels <= 2, "obstacle_averaging/vote_radius_voxels",
+                  "between 0 and 2");
     cloud.require(c.consensus.min_agreeing_frames <= c.frames_to_collect,
                   "candidate_averaging/consensus/min_agreeing_frames", "at most frames_to_collect");
 

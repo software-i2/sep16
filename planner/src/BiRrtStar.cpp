@@ -23,9 +23,12 @@ double secondsSince(const Clock::time_point &start) {
 BiRrtStar::BiRrtStar(CollisionChecker &checker, const RrtSettings &settings, const kine::JointAngles &weights)
         : checker_(checker), settings_(settings), weights_(weights) {}
 
-bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners) {
+bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners,
+                     double budget_s) {
     random_.seed(static_cast<uint64_t>(settings_.random_seed));
     corners.clear();
+    started_ = Clock::now();
+    budget_  = budget_s;
 
     if (edgeClear(start, goal)) {
         corners = {start, goal};
@@ -42,10 +45,9 @@ bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &go
 
     std::vector<std::pair<int, int>> joins;  // node in from_start, node in from_goal
     int                              first_join_iteration = -1;
-    const Clock::time_point          started              = Clock::now();
 
     for (int iteration = 0; iteration < settings_.max_iterations; ++iteration) {
-        if (secondsSince(started) > settings_.time_budget_s) {
+        if (secondsSince(started_) > std::min(settings_.time_budget_s, budget_)) {
             break;
         }
         if (first_join_iteration >= 0 && iteration - first_join_iteration >= settings_.refine_iterations) {
@@ -229,6 +231,9 @@ void BiRrtStar::reparent(Tree &tree, int node, int new_parent, double new_cost) 
 
 void BiRrtStar::shortcut(JointPath &corners) {
     for (int attempt = 0; attempt < settings_.shortcut_attempts && corners.size() > 2; ++attempt) {
+        if (secondsSince(started_) > budget_) {
+            break;
+        }
         std::uniform_int_distribution<size_t> pick(0, corners.size() - 1);
         size_t                                i = pick(random_);
         size_t                                k = pick(random_);

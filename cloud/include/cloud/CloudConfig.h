@@ -104,6 +104,7 @@ struct CloudConfig {
     ConsensusSettings consensus;
 
     int min_frames_occupied = 0;
+    int vote_radius_voxels  = 0;
 
     std::string topic_cloud;
     std::string topic_grasp_poses;

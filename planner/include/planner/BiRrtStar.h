@@ -7,6 +7,7 @@
 #include <planner/JointSpace.h>
 #include <planner/PlannerConfig.h>
 
+#include <chrono>
 #include <random>
 #include <utility>
 
@@ -18,7 +19,7 @@ public:
     BiRrtStar(CollisionChecker &checker, const RrtSettings &settings, const kine::JointAngles &weights);
 
     // Corners from start to goal; the start itself is never checked, so the arm can always leave where it is.
-    bool plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners);
+    bool plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners, double budget_s);
 
 private:
     struct Node {
@@ -37,10 +38,12 @@ private:
     void              reparent(Tree &tree, int node, int new_parent, double new_cost);
     void              shortcut(JointPath &corners);
 
-    CollisionChecker &checker_;
-    RrtSettings       settings_;
-    kine::JointAngles weights_;
-    std::mt19937_64   random_;
+    CollisionChecker                     &checker_;
+    RrtSettings                           settings_;
+    kine::JointAngles                     weights_;
+    std::mt19937_64                       random_;
+    std::chrono::steady_clock::time_point started_;
+    double                                budget_ = 0.0;
 };
 
 }  // namespace planner
