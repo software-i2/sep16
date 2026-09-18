@@ -3,7 +3,7 @@
 
 frames_to_collect: 5                     # frames gathered per attempt when either averaging switch is on, otherwise 1
 frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
-voxel_size_m: 0.005                      # obstacle map resolution; 10 mm leaves the handle half blocked for the jaws
+voxel_size_m: 0.0025                     # obstacle map resolution; at 5 mm the blade keep-out quantises to a 7-cell cross and blocks head-on grasps
 
 pose_axes:                               # which column of a grasp pose rotation means what
   approach_column: 0
@@ -51,9 +51,10 @@ candidate_averaging:
     outlier_distance_m: 0.006            # crossings further than this from the median are dropped
     max_spread_m: 0.003                  # rms spread of the agreeing crossings
     duplicate_distance_m: 0.005          # spots closer than this are the same spot
-    max_drift_m: 0.003                   # scene movement over the frames above this rejects the whole set
+    max_drift_m: 0.0                     # 0 turns the check off; otherwise scene movement over the frames above this rejects the whole set
     drift_direction_ratio: 0.2           # drift is only estimated along directions constrained at least this well, relative to the best
     drift_significance_sigmas: 3.0       # drift within this many standard errors of zero is treated as noise
 
 obstacle_averaging:
   min_frames_occupied: 3                 # a voxel is an obstacle when this many frames saw it occupied
+  vote_radius_voxels: 2                  # how far a frame's vote reaches, in voxels; 0 is the cell alone, 2 is 5 mm at this resolution
