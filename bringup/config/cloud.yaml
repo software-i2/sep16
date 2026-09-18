@@ -57,4 +57,4 @@ candidate_averaging:
 
 obstacle_averaging:
   min_frames_occupied: 3                 # a voxel is an obstacle when this many frames saw it occupied
-  vote_radius_voxels: 2                  # how far a frame's vote reaches, in voxels; 0 is the cell alone, 2 is 5 mm at this resolution
+  vote_radius_voxels: 1                  # how far a frame's vote reaches, in voxels; 0 is the cell alone, 2 is 5 mm at this resolution
