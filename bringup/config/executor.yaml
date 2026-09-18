@@ -1,8 +1,8 @@
 # Copyright by BeeX [2026]
 # Path execution. Loaded into /executor. Angles deg, times s.
 
-rate_hz: 5.0                             # waypoints sent per second
-max_joint_step_deg: 1.0                  # largest joint change between waypoints, so the speed limit is rate_hz * this
+rate_hz: 10.0                            # waypoints sent per second
+max_joint_step_deg: 1.5                  # largest joint change between waypoints, so the speed limit is rate_hz * this
 start_tolerance_deg: 2.0                 # refuse a path that starts further than this from where the arm is
 arrival_tolerance_deg: 1.5               # every joint within this of the last waypoint counts as arrived
 feedback_timeout_s: 0.5                  # joint_states older than this are ignored

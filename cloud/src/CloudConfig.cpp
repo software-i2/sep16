@@ -75,12 +75,10 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.voxel_size        = cloud.number("voxel_size_m");
     c.approach_column   = cloud.whole("pose_axes/approach_column");
     c.bar_column        = cloud.whole("pose_axes/bar_column");
-    const double margin = cloud.number("reach_margin_m");
 
     cloud.require(c.frames_to_collect > 0, "frames_to_collect", "positive");
     cloud.require(c.frame_timeout_s > 0.0, "frame_timeout_s", "positive");
     cloud.require(c.voxel_size > 0.0, "voxel_size_m", "positive");
-    cloud.require(margin >= 0.0, "reach_margin_m", "zero or more");
     cloud.require(c.approach_column >= 0 && c.approach_column <= 2, "pose_axes/approach_column", "0, 1 or 2");
     cloud.require(c.bar_column >= 0 && c.bar_column <= 2 && c.bar_column != c.approach_column,
                   "pose_axes/bar_column", "0, 1 or 2 and not the approach column");
@@ -113,7 +111,7 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     try {
         const kine::ArmModel model(kine::readArmConfig(arm, jaws));
         c.candidate_reach = model.reachFromBase(model.tipDistance());
-        c.crop_radius     = c.candidate_reach + margin;
+        c.crop_radius     = c.candidate_reach;
     } catch (const std::invalid_argument &e) {
         arm.require(false, "links", std::string("a usable arm (") + e.what() + ")");
     }

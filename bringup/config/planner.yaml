@@ -20,7 +20,7 @@ rrt:                                     # bi-directional RRT*
   refine_iterations: 300                 # keep improving this many iterations after the first path
   time_budget_s: 0.5                     # per grasp
   extend_step_deg: 57.2958               # longest single tree extension
-  rewire_gamma: 10.0                     # scales the rewiring radius
+  rewire_gamma: 1.0                     # scales the rewiring radius
   edge_check_step_deg: 1.0               # collision checks along every edge, no joint moves further between checks
   shortcut_attempts: 100
   random_seed: 1                         # fixed so the same scene gives the same path

@@ -3,7 +3,6 @@
 
 frames_to_collect: 5                     # frames gathered per attempt when either averaging switch is on, otherwise 1
 frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
-reach_margin_m: 0.05                     # added to the jaw tip reach when cropping the cloud around the arm
 voxel_size_m: 0.005                      # obstacle map resolution; 10 mm leaves the handle half blocked for the jaws
 
 pose_axes:                               # which column of a grasp pose rotation means what
@@ -44,7 +43,7 @@ handle_classifier:
 candidate_averaging:
   method: consensus                      # consensus: keep only spots enough frames agree on, averaged
   consensus:
-    min_agreeing_frames: 3
+    min_agreeing_frames: 2
     match_distance_m: 0.010              # a frame's crossing must be this close to count
     max_axis_angle_deg: 20.0             # a frame's bar must cross within this angle
     max_pose_gap_m: 0.015                # consecutive poses closer than this form one bar

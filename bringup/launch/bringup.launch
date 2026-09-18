@@ -4,6 +4,7 @@
     <!-- Switches. Every number lives in config/*.yaml. -->
     <arg name="sim" default="false" doc="true: simulated arm instead of the serial port"/>
     <arg name="bag" default="" doc="path to a recorded bag, replayed in a loop instead of the live camera"/>
+    <arg name="bag_rate" default="5.0" doc="bag replay speed; the recording is 1 Hz, the camera delivers 5 Hz"/>
     <arg name="task" default="true" doc="start the task state machine"/>
     <arg name="viz" default="true" doc="start the viz node"/>
     <arg name="foxglove" default="true" doc="start foxglove_bridge"/>
@@ -50,5 +51,6 @@
         <rosparam command="load" file="$(arg config)/foxglove.yaml"/>
     </node>
 
-    <node if="$(eval arg('bag') != '')" name="bag" pkg="rosbag" type="play" output="screen" args="--loop $(arg bag)"/>
+    <node if="$(eval arg('bag') != '')" name="bag" pkg="rosbag" type="play"
+          args="--loop --quiet --rate=$(arg bag_rate) $(arg bag)"/>
 </launch>

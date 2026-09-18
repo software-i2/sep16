@@ -88,7 +88,7 @@ struct CloudConfig {
     double frame_timeout_s   = 0.0;
     double voxel_size        = 0.0;
     double candidate_reach   = 0.0;  // how far the jaw tips can get from the arm base origin
-    double crop_radius       = 0.0;  // candidate_reach plus the margin
+    double crop_radius       = 0.0;  // candidate_reach; obstacles further out cannot touch the arm
     int    approach_column   = 0;
     int    bar_column        = 0;
 
