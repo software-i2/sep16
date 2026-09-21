@@ -3,7 +3,7 @@
 
 rate_hz: 5.0                             # state machine ticks per second
 server_wait_s: 5.0                       # how long to wait for the cloud, planner and executor to be up
-retry_delay_s: 1.0                       # pause before collecting again when nothing could be planned
+retry_delay_s: 0.0                       # pause before collecting again when nothing could be planned; the cloud buffer already paces the loop
 max_attempts: 0                          # 0 keeps retrying until task/stop
 
 jaw:

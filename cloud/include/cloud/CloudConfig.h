@@ -85,6 +85,8 @@ struct CloudConfig {
     Switches    switches;
 
     int    frames_to_collect = 0;
+    int    frames_to_advance = 0;
+    double max_reuse_gap_s   = 0.0;
     double frame_timeout_s   = 0.0;
     double voxel_size        = 0.0;
     double candidate_reach   = 0.0;  // how far the jaw tips can get from the arm base origin

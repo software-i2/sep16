@@ -12,15 +12,15 @@ joint_state_timeout_s: 0.5               # the start pose must come from joint_s
 
 joint_cost_weights: {base: 1.0, shoulder: 1.0, elbow: 1.0, wrist: 1.0}  # cost = sum of weight * joint travel
 
-paths_to_compare: 3                      # plan paths to this many of the cheapest-looking grasps, keep the cheapest path
+paths_to_compare: 1                      # plan paths to this many of the cheapest-looking grasps, keep the cheapest path
 max_planning_time_s: 10.0                # stop trying more grasps after this
 
 rrt:                                     # bi-directional RRT*
   max_iterations: 3000
   refine_iterations: 300                 # keep improving this many iterations after the first path
-  time_budget_s: 0.5                     # per grasp
+  time_budget_s: 0.2                     # per grasp
   extend_step_deg: 57.2958               # longest single tree extension
-  rewire_gamma: 1.0                     # scales the rewiring radius
+  rewire_gamma: 1.0                      # scales the rewiring radius
   edge_check_step_deg: 1.0               # collision checks along every edge, no joint moves further between checks
   shortcut_attempts: 20
   random_seed: 1                         # fixed so the same scene gives the same path

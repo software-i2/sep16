@@ -6,7 +6,7 @@
 
 frame: camera_link                       # frame_id on the cloud and the grasp poses
 mount_frame: camera_mount
-mount_position_m: [0.1, 0.05, 0.0]       # camera_mount origin in arm_base, fitted by hand to the recorded bag
+mount_position_m: [0.15, 0.05, 0.0]       # camera_mount origin in arm_base, fitted by hand to the recorded bag
 mount_rpy_deg: [90.0, -90.0, 0.0]        # camera_mount orientation in arm_base
 frame_rpy_deg: [90.0, 0.0, -90.0]        # camera_link orientation in camera_mount
 

@@ -12,11 +12,12 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <deque>
 #include <mutex>
 
 namespace cloud {
 
-// Serves the collect action: subscribes to the camera only while collecting, then runs the pipeline.
+// Serves the collect action: keeps a rolling buffer of the newest camera frames, then runs the pipeline.
 class CloudNode {
 public:
     CloudNode(const CloudConfig &config, const CloudPipeline &pipeline);
@@ -39,11 +40,14 @@ private:
     tf2_ros::Buffer                                    tf_buffer_;
     tf2_ros::TransformListener                         tf_listener_;
 
-    std::mutex                          frames_mutex_;
-    sensor_msgs::PointCloud2::ConstPtr  latest_cloud_;
-    geometry_msgs::PoseArray::ConstPtr  latest_poses_;
-    std::vector<CameraFrame>            frames_;
-    std::string                         frame_problem_;
+    std::mutex                         frames_mutex_;
+    sensor_msgs::PointCloud2::ConstPtr latest_cloud_;
+    geometry_msgs::PoseArray::ConstPtr latest_poses_;
+    std::deque<CameraFrame>            frames_;
+    size_t                             arrived_since_window_ = 0;
+    ros::Time                          window_served_;
+    bool                               subscribed_ = false;
+    std::string                        frame_problem_;
 
     DECLARE_ROS_SUBSCRIBER(sub_cloud_, sensor_msgs::PointCloud2)
     DECLARE_ROS_SUBSCRIBER(sub_grasp_poses_, geometry_msgs::PoseArray)
