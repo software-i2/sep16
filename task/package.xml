@@ -2,7 +2,7 @@
 <package format="2">
   <name>task</name>
   <version>0.1.0</version>
-  <description>The pick state machine: one task/start runs collect, process, plan, execute and close the jaw, open loop.</description>
+  <description>The pick state machine: one task/start runs collect, process, park, measure again from there, plan, execute and close the jaw.</description>
   <maintainer email="bolin@todo.todo">nknight</maintainer>
   <license>TODO</license>
 
@@ -17,6 +17,7 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>visualization_msgs</depend>
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>

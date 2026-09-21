@@ -7,9 +7,11 @@ string message
 ParkPose chosen
 ParkPose stayed          # what the current pose scores, so the gain from moving is visible
 
-# The same scene, labelled with the frame the arm base stood in when it was latched. Plan
-# against this, not against a fresh collect: after the move the camera sees the target from
-# too close, and on a replayed bag it cannot see the new viewpoint at all.
+# The same scene, labelled with the frame the arm base stood in when it was latched. The pick
+# is planned against a fresh collect taken after the move, not against this; it is kept as the
+# reference the fresh measurement is compared with, which is what makes the drive's dead
+# reckoning and the scene's own motion visible. When the search elects not to move, this is
+# still what gets planned, because nothing has happened to make it stale.
 CloudResult locked
 ---
 string stage             # searching, moving

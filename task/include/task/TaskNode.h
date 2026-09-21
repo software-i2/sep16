@@ -14,13 +14,16 @@
 #include <std_srvs/Trigger.h>
 #include <task/StateMachine.h>
 #include <task/TaskConfig.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <atomic>
 #include <mutex>
+#include <string>
 
 namespace task {
 
-// Runs the pick after one task/start: collect, process, plan, execute, close the jaw.
+// Runs the pick after one task/start: collect, process, park, measure the scene again from the
+// park pose, plan, execute, close the jaw.
 class TaskNode {
 public:
     explicit TaskNode(const TaskConfig &config);
@@ -41,21 +44,30 @@ private:
     Event checkCollect(std::string &message);
     Event checkPark(std::string &message);
     Event checkPlan(std::string &message);
+    Event checkRecollect(std::string &message);
+    Event checkReplan(std::string &message);
     Event checkExecute(std::string &message);
     Event checkJaw(std::string &message);
     Event checkRetry(std::string &message);
+    Event checkReverify(std::string &message);
+
+    // How far the pre-move snapshot turned out to be wrong: the dead reckoning of the drive
+    // plus whatever the scene did while it was under way. Empty when there is nothing to say.
+    std::string comparedWithSnapshot();
+    std::string freshMapExtent() const;
 
     bool callTrigger(ros::ServiceClient &client, const std::string &name, std::string &why);
 
     TaskConfig config_;
 
     std::mutex        mutex_;
-    State             state_      = State::IDLE;
+    State             state_             = State::IDLE;
     ros::Time         entered_at_;
-    uint32_t          attempt_    = 0;
-    bool              grabbed_    = false;
-    bool              parked_     = false;
+    uint32_t          attempt_           = 0;
+    uint32_t          reverify_attempt_  = 0;
+    bool              grabbed_           = false;
     msgs::CloudResult cloud_;
+    msgs::CloudResult locked_;
     msgs::GraspPlan   plan_;
     std::atomic<bool> processing_{false};
 
@@ -71,6 +83,9 @@ private:
     actionlib::SimpleActionClient<msgs::ParkAction>    park_;
     actionlib::SimpleActionClient<msgs::PlanAction>    planner_;
     actionlib::SimpleActionClient<msgs::ExecuteAction> executor_;
+
+    tf2_ros::Buffer            tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
 
     DECLARE_ROS_SERVICE_SERVER(srv_start_, std_srvs::Trigger)
     DECLARE_ROS_SERVICE_SERVER(srv_stop_, std_srvs::Trigger)

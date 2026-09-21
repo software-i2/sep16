@@ -16,6 +16,14 @@ const char *stateName(State state) {
         return "PARK";
     case State::PLAN:
         return "PLAN";
+    case State::RECOLLECT:
+        return "RECOLLECT";
+    case State::REPROCESS:
+        return "REPROCESS";
+    case State::REPLAN:
+        return "REPLAN";
+    case State::REVERIFY:
+        return "REVERIFY";
     case State::EXECUTE:
         return "EXECUTE";
     case State::JAWCLOSING:
@@ -34,7 +42,8 @@ const char *stateName(State state) {
 
 State nextState(State state, Event event) {
     const bool working = state == State::COLLECT || state == State::PROCESS || state == State::PARK
-                         || state == State::PLAN || state == State::EXECUTE || state == State::JAWCLOSING;
+                         || state == State::PLAN || state == State::RECOLLECT || state == State::REPROCESS
+                         || state == State::REPLAN || state == State::EXECUTE || state == State::JAWCLOSING;
     const bool finished = state == State::IDLE || state == State::DONE || state == State::FAILED
                           || state == State::STOPPED;
 
@@ -49,8 +58,10 @@ State nextState(State state, Event event) {
         return state == State::COLLECT ? State::PROCESS : state;
     case Event::CANDIDATES_FOUND:
         return state == State::COLLECT || state == State::PROCESS ? State::PARK : state;
-    case Event::PARKED:
+    case Event::PARKED_STAYED:
         return state == State::PARK ? State::PLAN : state;
+    case Event::PARKED_MOVED:
+        return state == State::PARK ? State::RECOLLECT : state;
     case Event::NO_PARK:
         return state == State::PARK ? State::RETRY : state;
     case Event::NO_CANDIDATES:
@@ -59,6 +70,17 @@ State nextState(State state, Event event) {
         return state == State::PLAN ? State::EXECUTE : state;
     case Event::NO_PLAN:
         return state == State::PLAN ? State::RETRY : state;
+    case Event::REPROCESSING:
+        return state == State::RECOLLECT ? State::REPROCESS : state;
+    case Event::RECANDIDATES_FOUND:
+        return state == State::RECOLLECT || state == State::REPROCESS ? State::REPLAN : state;
+    case Event::REPLAN_FOUND:
+        return state == State::REPLAN ? State::EXECUTE : state;
+    case Event::REVERIFY_RETRY:
+        return state == State::RECOLLECT || state == State::REPROCESS || state == State::REPLAN ? State::REVERIFY
+                                                                                                : state;
+    case Event::REVERIFY_DUE:
+        return state == State::REVERIFY ? State::RECOLLECT : state;
     case Event::REACHED:
         return state == State::EXECUTE ? State::JAWCLOSING : state;
     case Event::JAW_SETTLED:
@@ -66,7 +88,7 @@ State nextState(State state, Event event) {
     case Event::RETRY_DUE:
         return state == State::RETRY ? State::COLLECT : state;
     case Event::GAVE_UP:
-        return state == State::RETRY ? State::FAILED : state;
+        return state == State::RETRY || state == State::REVERIFY ? State::FAILED : state;
     case Event::FAILURE:
         return working ? State::FAILED : state;
     }

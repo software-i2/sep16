@@ -46,7 +46,8 @@ void CloudNode::pairLatest() {
     if (toFrame(*latest_cloud_, *latest_poses_, frame, why)) {
         frames_.push_back(std::move(frame));
         ++arrived_since_window_;
-        while (frames_.size() > static_cast<size_t>(config_.frames_to_collect)) {
+        const size_t keep = static_cast<size_t>(std::max(config_.frames_to_collect, config_.fresh_frames));
+        while (frames_.size() > keep) {
             frames_.pop_front();
         }
     } else {
@@ -123,13 +124,15 @@ void CloudNode::finishFailed(const std::string &why) {
     server_.setAborted(result, why);
 }
 
-void CloudNode::onCollect(const msgs::CollectGoalConstPtr & /*goal*/) {
+void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
     const bool   averaging = config_.switches.candidate_averaging || config_.switches.obstacle_averaging;
-    const size_t needed    = averaging ? static_cast<size_t>(config_.frames_to_collect) : 1;
-    const size_t advance   = std::min(static_cast<size_t>(config_.frames_to_advance), needed);
+    const int    window    = goal->fresh ? config_.fresh_frames : config_.frames_to_collect;
+    const size_t needed    = averaging ? static_cast<size_t>(window) : 1;
+    const size_t advance   = goal->fresh ? needed : std::min(static_cast<size_t>(config_.frames_to_advance), needed);
 
     // Frames buffered across a long gap saw the arm moving through the view, so none of them can be reused.
-    const bool reuse = !window_served_.isZero()
+    // A fresh goal refuses to reuse anything whatever the gap says: the vehicle has moved since.
+    const bool reuse = !goal->fresh && !window_served_.isZero()
                        && ros::Time::now() - window_served_ <= ros::Duration(config_.max_reuse_gap_s);
     {
         std::lock_guard<std::mutex> lock(frames_mutex_);
@@ -144,7 +147,8 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr & /*goal*/) {
         INIT_ROS_SUBSCRIBER(sub_grasp_poses_, config_.topic_grasp_poses, 1, &CloudNode::onGraspPoses);
         subscribed_ = true;
     }
-    LOG_INFO("[cloud] window of %zu frame(s), %zu of them new", needed, reuse ? advance : needed);
+    LOG_INFO("[cloud] window of %zu frame(s), %zu of them new%s", needed, reuse ? advance : needed,
+             goal->fresh ? ", nothing reused" : "");
 
     msgs::CollectFeedback feedback;
     feedback.stage     = msgs::CollectFeedback::COLLECTING;

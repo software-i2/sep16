@@ -16,6 +16,11 @@ struct TaskConfig {
     double retry_delay_s = 0.0;
     int    max_attempts  = 0;
 
+    std::string base_frame;
+    int         reverify_attempts       = 0;
+    double      reverify_match_distance = 0.0;
+    double      reverify_transform_wait = 0.0;
+
     std::string jaw_joint_name;
     double      jaw_closed_width     = 0.0;
     double      jaw_settle_tolerance = 0.0;

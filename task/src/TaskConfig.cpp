@@ -11,6 +11,11 @@ TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Par
     c.retry_delay_s = task.number("retry_delay_s");
     c.max_attempts  = task.whole("max_attempts");
 
+    c.base_frame              = arm.text("base_frame");
+    c.reverify_attempts       = task.whole("reverify/attempts");
+    c.reverify_match_distance = task.number("reverify/match_distance_m");
+    c.reverify_transform_wait = task.number("reverify/transform_wait_s");
+
     c.jaw_joint_name       = arm.text("joint_names/jaw");
     c.jaw_closed_width     = arm.number("jaw_limits_m/min");
     c.jaw_settle_tolerance = task.number("jaw/settle_tolerance_m");
@@ -22,6 +27,9 @@ TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Par
     task.require(c.server_wait_s > 0.0, "server_wait_s", "positive");
     task.require(c.retry_delay_s >= 0.0, "retry_delay_s", "zero or more");
     task.require(c.max_attempts >= 0, "max_attempts", "zero or more");
+    task.require(c.reverify_attempts >= 0, "reverify/attempts", "zero or more");
+    task.require(c.reverify_match_distance > 0.0, "reverify/match_distance_m", "positive");
+    task.require(c.reverify_transform_wait >= 0.0, "reverify/transform_wait_s", "zero or more");
     task.require(c.jaw_settle_tolerance > 0.0, "jaw/settle_tolerance_m", "positive");
     task.require(c.jaw_settle_time_s > 0.0, "jaw/settle_time_s", "positive");
     task.require(c.jaw_grabbed_margin > 0.0, "jaw/grabbed_margin_m", "positive");

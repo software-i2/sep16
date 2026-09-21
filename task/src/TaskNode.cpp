@@ -1,12 +1,16 @@
 // Copyright by BeeX [2026]
 
 #include <task/TaskNode.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Vector3.h>
 
 #include <boost/bind.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <vector>
 
 namespace task {
 
@@ -15,7 +19,8 @@ TaskNode::TaskNode(const TaskConfig &config)
           collect_(*mainNodeHandle, config.action_collect, false),
           park_(*mainNodeHandle, config.action_park, false),
           planner_(*mainNodeHandle, config.action_plan, false),
-          executor_(*mainNodeHandle, config.action_execute, false) {
+          executor_(*mainNodeHandle, config.action_execute, false),
+          tf_listener_(tf_buffer_) {
     INIT_ROS_SERVICE_SERVER(srv_start_, config_.service_start, &TaskNode::onStart);
     INIT_ROS_SERVICE_SERVER(srv_stop_, config_.service_stop, &TaskNode::onStop);
     INIT_ROS_SERVICE_CLIENT(cli_close_jaw_, std_srvs::Trigger, config_.service_close_jaw);
@@ -42,6 +47,13 @@ void TaskNode::tick() {
     case State::PLAN:
         event = checkPlan(message);
         break;
+    case State::RECOLLECT:
+    case State::REPROCESS:
+        event = checkRecollect(message);
+        break;
+    case State::REPLAN:
+        event = checkReplan(message);
+        break;
     case State::EXECUTE:
         event = checkExecute(message);
         break;
@@ -50,6 +62,9 @@ void TaskNode::tick() {
         break;
     case State::RETRY:
         event = checkRetry(message);
+        break;
+    case State::REVERIFY:
+        event = checkReverify(message);
         break;
     default:
         break;
@@ -74,9 +89,10 @@ bool TaskNode::onStart(std_srvs::Trigger::Request & /*req*/, std_srvs::Trigger::
         LOG_WARN("[task] start refused: %s", res.message.c_str());
         return true;
     }
-    attempt_ = 0;
-    grabbed_ = false;
-    parked_  = false;
+    attempt_          = 0;
+    reverify_attempt_ = 0;
+    grabbed_          = false;
+    locked_           = msgs::CloudResult();
     apply(Event::START, "started");
     res.success = true;
     res.message = "started";
@@ -137,11 +153,32 @@ void TaskNode::enter(State state, const std::string &message) {
         break;
     }
 
-    case State::PLAN: {
+    case State::PLAN:
+    case State::REPLAN: {
         msgs::PlanGoal goal;
         goal.cloud = cloud_;
         planner_.sendGoal(goal);
         break;
+    }
+
+    case State::RECOLLECT: {
+        ++reverify_attempt_;
+        processing_ = false;
+        msgs::CollectGoal goal;
+        goal.fresh = true;
+        collect_.sendGoal(goal, actionlib::SimpleActionClient<msgs::CollectAction>::SimpleDoneCallback(),
+                          actionlib::SimpleActionClient<msgs::CollectAction>::SimpleActiveCallback(),
+                          boost::bind(&TaskNode::onCollectFeedback, this, _1));
+        break;
+    }
+
+    case State::REVERIFY: {
+        char line[160];
+        std::snprintf(line, sizeof(line),
+                      "; look %u of %d from the park pose did not end in a grasp, looking again in %.1f s",
+                      reverify_attempt_, config_.reverify_attempts, config_.retry_delay_s);
+        publishState(message + line);
+        return;
     }
 
     case State::EXECUTE: {
@@ -231,11 +268,15 @@ Event TaskNode::checkPark(std::string &message) {
         if (!result->success) {
             return Event::NO_PARK;
         }
-        // Everything after this plans against the snapshot, in the frame the arm base stood
-        // in when it was taken. Collecting again here would look at the target from too close.
-        cloud_ = result->locked;
-        parked_ = true;
-        return Event::PARKED;
+        cloud_            = result->locked;
+        locked_           = result->locked;
+        reverify_attempt_ = 0;
+
+        // Staying put leaves the snapshot describing exactly where the arm stands, so it is
+        // still what to plan against. Once the vehicle has driven, it describes somewhere the
+        // arm no longer is, and only the camera can say where the handle went.
+        const bool moved = result->chosen.travel > 0.0 || std::fabs(result->chosen.yaw) > 0.0;
+        return moved ? Event::PARKED_MOVED : Event::PARKED_STAYED;
     }
     if (goal.isDone()) {
         message = "park: " + goal.getText();
@@ -249,24 +290,107 @@ Event TaskNode::checkPlan(std::string &message) {
     if (goal == actionlib::SimpleClientGoalState::SUCCEEDED) {
         plan_   = planner_.getResult()->plan;
         message = plan_.summary;
-        if (plan_.success) {
-            return Event::PLAN_FOUND;
-        }
-        // Collecting again after a park is worse than useless: the target is now too close to
-        // see well, and on a replayed bag the scene simply follows the camera, so every retry
-        // parks further forward and the handle stays exactly as far away as it was.
-        if (parked_) {
-            message += "; the park pose was reachable but blocked, and the scene is locked, so "
-                       "there is nothing to gain by looking again";
-            return Event::FAILURE;
-        }
-        return Event::NO_PLAN;
+        return plan_.success ? Event::PLAN_FOUND : Event::NO_PLAN;
     }
     if (goal.isDone()) {
         message = "planner: " + goal.getText();
         return Event::FAILURE;
     }
     return Event::NONE;
+}
+
+Event TaskNode::checkRecollect(std::string &message) {
+    if (processing_ && state_ == State::RECOLLECT) {
+        message = "fresh frames collected from the park pose";
+        return Event::REPROCESSING;
+    }
+    const actionlib::SimpleClientGoalState goal = collect_.getState();
+    if (goal == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        cloud_  = collect_.getResult()->cloud;
+        message = cloud_.summary + freshMapExtent() + comparedWithSnapshot();
+        return cloud_.candidates.empty() ? Event::REVERIFY_RETRY : Event::RECANDIDATES_FOUND;
+    }
+    if (goal.isDone()) {
+        message = "cloud: " + goal.getText();
+        return Event::FAILURE;
+    }
+    return Event::NONE;
+}
+
+Event TaskNode::checkReplan(std::string &message) {
+    const actionlib::SimpleClientGoalState goal = planner_.getState();
+    if (goal == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        plan_   = planner_.getResult()->plan;
+        message = plan_.summary;
+        return plan_.success ? Event::REPLAN_FOUND : Event::REVERIFY_RETRY;
+    }
+    if (goal.isDone()) {
+        message = "planner: " + goal.getText();
+        return Event::FAILURE;
+    }
+    return Event::NONE;
+}
+
+// The fresh map is built from one viewpoint 200 to 300 mm off the handle, so it covers far
+// less scene than the one collected before the drive did, and unseen space counts as free.
+// These two numbers are what a map that has shrunk too far looks like from the outside.
+std::string TaskNode::freshMapExtent() const {
+    const msgs::ObstacleMap &map = cloud_.obstacles;
+    char                     line[200];
+    std::snprintf(line, sizeof(line), "; fresh map %.2f by %.2f by %.2f m holding %zu obstacle cells",
+                  map.size_x * map.voxel_size_m, map.size_y * map.voxel_size_m, map.size_z * map.voxel_size_m,
+                  map.obstacle_cells.size());
+    return line;
+}
+
+std::string TaskNode::comparedWithSnapshot() {
+    if (locked_.candidates.empty() || cloud_.candidates.empty() || locked_.header.frame_id.empty()) {
+        return "";
+    }
+
+    geometry_msgs::TransformStamped transform;
+    try {
+        transform = tf_buffer_.lookupTransform(config_.base_frame, locked_.header.frame_id, ros::Time(0),
+                                               ros::Duration(config_.reverify_transform_wait));
+    } catch (const tf2::TransformException &e) {
+        LOG_WARN("[task] the snapshot cannot be compared with what was just measured: %s", e.what());
+        return "";
+    }
+    const geometry_msgs::Vector3    &t = transform.transform.translation;
+    const geometry_msgs::Quaternion &q = transform.transform.rotation;
+    const tf2::Transform into(tf2::Quaternion(q.x, q.y, q.z, q.w), tf2::Vector3(t.x, t.y, t.z));
+
+    std::vector<double> gaps;
+    for (const msgs::GraspPose &was : locked_.candidates) {
+        const tf2::Vector3 before = into * tf2::Vector3(was.point.x, was.point.y, was.point.z);
+        double             nearest = -1.0;
+        for (const msgs::GraspPose &now : cloud_.candidates) {
+            const double gap = before.distance(tf2::Vector3(now.point.x, now.point.y, now.point.z));
+            if (nearest < 0.0 || gap < nearest) {
+                nearest = gap;
+            }
+        }
+        if (nearest >= 0.0 && nearest <= config_.reverify_match_distance) {
+            gaps.push_back(nearest);
+        }
+    }
+
+    char line[200];
+    if (gaps.empty()) {
+        LOG_WARN("[task] none of the %zu candidates in the snapshot are within %.0f mm of any of the %zu measured "
+                 "from the park pose",
+                 locked_.candidates.size(), config_.reverify_match_distance * 1000.0, cloud_.candidates.size());
+        std::snprintf(line, sizeof(line), "; nothing from before the move matches what is there now");
+        return line;
+    }
+    std::sort(gaps.begin(), gaps.end());
+    const double median = gaps[gaps.size() / 2];
+    LOG_INFO("[task] %zu of %zu candidates found again after the drive, %.1f mm out at the median and %.1f mm at "
+             "the worst: that is what planning against the snapshot would have cost",
+             gaps.size(), locked_.candidates.size(), median * 1000.0, gaps.back() * 1000.0);
+    std::snprintf(line, sizeof(line), "; the snapshot was %.1f mm out at the median, %.1f mm at the worst",
+                  median * 1000.0, gaps.back() * 1000.0);
+    return line;
 }
 
 Event TaskNode::checkExecute(std::string &message) {
@@ -322,6 +446,22 @@ Event TaskNode::checkRetry(std::string &message) {
     if ((ros::Time::now() - entered_at_).toSec() >= config_.retry_delay_s) {
         message = "trying again";
         return Event::RETRY_DUE;
+    }
+    return Event::NONE;
+}
+
+// Nothing has moved since the park, so looking again costs only the frames it waits for. What
+// it cannot do is find a way out of a pose the arm genuinely cannot work from, which is why
+// the budget is small and running out of it flags the pick rather than driving somewhere else.
+Event TaskNode::checkReverify(std::string &message) {
+    if (config_.reverify_attempts > 0 && reverify_attempt_ >= static_cast<uint32_t>(config_.reverify_attempts)) {
+        message = "looked again from the park pose " + std::to_string(reverify_attempt_)
+                  + " times and still could not plan a grasp";
+        return Event::GAVE_UP;
+    }
+    if ((ros::Time::now() - entered_at_).toSec() >= config_.retry_delay_s) {
+        message = "looking again";
+        return Event::REVERIFY_DUE;
     }
     return Event::NONE;
 }

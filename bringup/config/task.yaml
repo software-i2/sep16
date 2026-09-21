@@ -3,8 +3,18 @@
 
 rate_hz: 5.0                             # state machine ticks per second
 server_wait_s: 5.0                       # how long to wait for the cloud, planner and executor to be up
-retry_delay_s: 0.0                       # pause before collecting again when nothing could be planned; the cloud buffer already paces the loop
+retry_delay_s: 0.0                       # pause before collecting again when nothing could be planned, before and after a park; the cloud buffer already paces the loop
 max_attempts: 5                          # give up after this many; 0 keeps retrying until task/stop
+
+reverify:                                # once the vehicle has parked, the scene is measured again from there and
+                                         # the pick is planned from that, so the drive's dead reckoning and anything
+                                         # the scene did on the way are not carried into the grasp
+  attempts: 3                            # fresh collect-and-plan tries at the park pose before the pick is flagged;
+                                         # nothing moves between them, so a try costs only the frames it waits for
+  match_distance_m: 0.05                 # how far a candidate from the pre-move snapshot may sit from a freshly
+                                         # measured one and still be taken for the same handle, when reporting how
+                                         # far the scene moved across the drive
+  transform_wait_s: 0.5                  # how long to wait for the transform that brings the snapshot forward
 
 jaw:
   settle_tolerance_m: 0.0001             # jaw readings within this of each other count as still

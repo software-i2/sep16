@@ -4,6 +4,12 @@
 frames_to_collect: 5                     # frames in the window when either averaging switch is on, otherwise 1
 frames_to_advance: 2                     # new frames per attempt; the rest are reused, and equalling frames_to_collect collects every frame fresh
 max_reuse_gap_s: 2.0                     # frames are only reused when the last attempt was this recent; a longer gap means the arm has moved through the view
+
+fresh_collect:                           # a collect asked for with fresh set, which is how the task re-measures the
+                                         # scene once the vehicle has parked
+  frames_to_collect: 5                   # the whole window is re-taken; max_reuse_gap_s does not apply, because a
+                                         # short park can finish inside it and would blend frames from before the move
+
 frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
 transform_wait_s: 0.2                    # how long to wait for the camera transform at the frame's own stamp
 anchor_frame: camera_anchor              # treat every cloud as seen from this frame rather than from camera_link;

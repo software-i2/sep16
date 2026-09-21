@@ -1,4 +1,10 @@
 # Collect frames from the camera topics and turn them into candidates and an obstacle map.
+
+# Throw away everything already buffered and wait for a whole window of new frames, sized by
+# cloud.yaml's fresh_collect. Set this once the vehicle has moved: frames taken before the move
+# saw the scene from somewhere else, and blending them into the window puts the handle in two
+# places at once.
+bool fresh
 ---
 CloudResult cloud
 ---
