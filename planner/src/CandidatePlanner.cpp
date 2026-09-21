@@ -52,7 +52,7 @@ bool CandidatePlanner::snapIntoLimits(const kine::JointAngles &reading, kine::Jo
 }
 
 PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, const msgs::ObstacleMap &map,
-                                   const kine::JointAngles &start_reading,
+                                   const kine::JointAngles &start_reading, const Eigen::Isometry3d &base_to_map,
                                    const std::function<bool()> &cancelled) const {
     const Clock::time_point started = Clock::now();
     PlanOutcome             result;
@@ -71,6 +71,7 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
         result.summary = e.what();
         return result;
     }
+    grid->setQueryToMap(base_to_map);
     CollisionChecker checker(body_, *grid, config_.safety_floor_z, config_.link_sample_step);
 
     const GraspSettings grasp{config_.grasp_point_from_mount, config_.max_approach_deviation,

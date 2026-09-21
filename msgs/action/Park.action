@@ -1,0 +1,17 @@
+# Search the bounded box for a vehicle pose that brings the locked scene into the arm's reach,
+# then move there. The cloud is latched by the caller and is not re-collected during the move.
+CloudResult cloud
+---
+bool success
+string message
+ParkPose chosen
+ParkPose stayed          # what the current pose scores, so the gain from moving is visible
+
+# The same scene, labelled with the frame the arm base stood in when it was latched. Plan
+# against this, not against a fresh collect: after the move the camera sees the target from
+# too close, and on a replayed bag it cannot see the new viewpoint at all.
+CloudResult locked
+---
+string stage             # searching, moving
+uint32 poses_scored
+float64 best_score

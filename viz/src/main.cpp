@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
     ros::Rate rate(config.arm_body_rate_hz);
     while (IS_ROS_NODE_OK()) {
         node->drawArmBody();
+        node->drawFloor();
         rate.sleep();
     }
     ROS_SHUTDOWN();

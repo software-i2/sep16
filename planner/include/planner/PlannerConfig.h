@@ -37,6 +37,7 @@ struct PlannerConfig {
     double            max_approach_deviation = 0.0;
     double            start_tolerance        = 0.0;
     double            joint_state_timeout_s  = 0.0;
+    double            transform_wait_s       = 0.0;
     kine::JointAngles joint_cost_weights{};
     int               paths_to_compare    = 0;
     double            max_planning_time_s = 0.0;

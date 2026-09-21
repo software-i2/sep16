@@ -134,7 +134,13 @@ void VizNode::drawArmBody() {
 }
 
 void VizNode::onCloudResult(const msgs::CloudResult::ConstPtr &msg) {
+    // Drawn in the frame the cloud says it is in, not the arm base. Once the vehicle can move,
+    // a snapshot latched at the old pose and the live view are in different frames, and
+    // stamping both with the arm base would draw them on top of each other.
+    const std::string &frame = msg->header.frame_id.empty() ? config_.base_frame : msg->header.frame_id;
+
     visualization_msgs::Marker poses = marker("grasp_poses", visualization_msgs::Marker::SPHERE_LIST, config_.handle_colour);
+    poses.header.frame_id = frame;
     poses.scale.x = poses.scale.y = poses.scale.z = config_.grasp_pose_size;
     for (const msgs::GraspPose &pose : msg->handle_poses) {
         poses.points.push_back(pose.point);
@@ -151,7 +157,7 @@ void VizNode::onCloudResult(const msgs::CloudResult::ConstPtr &msg) {
 
     const msgs::ObstacleMap &map = msg->obstacles;
     sensor_msgs::PointCloud2 cloud;
-    cloud.header.frame_id = config_.base_frame;
+    cloud.header.frame_id = frame;
     cloud.header.stamp    = ros::Time::now();
     sensor_msgs::PointCloud2Modifier modifier(cloud);
     modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");

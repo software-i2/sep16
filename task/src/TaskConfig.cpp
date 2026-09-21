@@ -32,6 +32,7 @@ TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Par
     c.topic_state        = topics.text("task_state");
     c.topic_joint_states = topics.text("joint_states");
     c.action_collect     = topics.text("cloud_collect");
+    c.action_park        = topics.text("park_park");
     c.action_plan        = topics.text("planner_plan");
     c.action_execute     = topics.text("executor_execute");
     c.service_close_jaw  = topics.text("driver_close_jaw");

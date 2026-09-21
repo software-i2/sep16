@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>planner</name>
+  <name>park</name>
   <version>0.1.0</version>
-  <description>Picks the cheapest reachable grasp among the candidates and plans a collision-free path to it with bi-directional RRT*.</description>
+  <description>Searches a bounded box of vehicle poses for one that brings the locked scene into the arm's reach, and drives the simulated vehicle there.</description>
   <maintainer email="bolin@todo.todo">nknight</maintainer>
   <license>TODO</license>
 
@@ -15,9 +15,9 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>tf2_msgs</depend>
   <depend>tf2_ros</depend>
-  <depend>visualization_msgs</depend>
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>
   <depend>eigen</depend>

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(planner)
 
-set(EXTRA_CATKIN_PROJECTS params kine msgs actionlib actionlib_msgs)
+set(EXTRA_CATKIN_PROJECTS params kine msgs actionlib actionlib_msgs tf2_ros)
 
 find_file(BEEX_CMAKE_INCLUDE bx_msgs/include/BEEX_CMAKE.txt HINTS ../../ ../ REQUIRED)
 include(${BEEX_CMAKE_INCLUDE})

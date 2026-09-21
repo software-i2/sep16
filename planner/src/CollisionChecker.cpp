@@ -8,15 +8,19 @@
 namespace planner {
 
 CollisionChecker::CollisionChecker(const kine::ArmBody &body, const ObstacleGrid &grid, double safety_floor_z,
-                                   double link_sample_step)
-        : body_(body), grid_(grid), safety_floor_z_(safety_floor_z), link_sample_step_(link_sample_step) {}
+                                   double link_sample_step, size_t blade_stride)
+        : body_(body),
+          grid_(grid),
+          safety_floor_z_(safety_floor_z),
+          link_sample_step_(link_sample_step),
+          blade_stride_(blade_stride) {}
 
 Verdict CollisionChecker::check(const kine::JointAngles &joints) {
     if (!body_.model().withinLimits(joints)) {
         return Verdict::JOINT_LIMIT;
     }
 
-    body_.pose(joints, pose_);
+    body_.pose(joints, pose_, blade_stride_);
     if (kine::lowestPoint(pose_) < safety_floor_z_) {
         return Verdict::FLOOR;
     }

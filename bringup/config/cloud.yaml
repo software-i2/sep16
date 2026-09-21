@@ -5,6 +5,7 @@ frames_to_collect: 5                     # frames in the window when either aver
 frames_to_advance: 2                     # new frames per attempt; the rest are reused, and equalling frames_to_collect collects every frame fresh
 max_reuse_gap_s: 2.0                     # frames are only reused when the last attempt was this recent; a longer gap means the arm has moved through the view
 frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
+transform_wait_s: 0.2                    # how long to wait for the camera transform at the frame's own stamp
 voxel_size_m: 0.0025                     # obstacle map resolution; at 5 mm the blade keep-out quantises to a 7-cell cross and blocks head-on grasps
 
 pose_axes:                               # which column of a grasp pose rotation means what

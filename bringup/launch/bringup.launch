@@ -6,6 +6,7 @@
     <arg name="bag" default="" doc="path to a recorded bag, replayed in a loop instead of the live camera"/>
     <arg name="bag_rate" default="5.0" doc="bag replay speed; the recording is 1 Hz, the camera delivers 5 Hz"/>
     <arg name="task" default="true" doc="start the task state machine"/>
+    <arg name="park" default="true" doc="start the vehicle parking search; it owns world_locked -&gt; vehicle_base"/>
     <arg name="viz" default="true" doc="start the viz node"/>
     <arg name="foxglove" default="true" doc="start foxglove_bridge"/>
     <arg name="outlier_filter" default="true" doc="drop flying pixels before building the obstacle map"/>
@@ -21,6 +22,7 @@
     <rosparam command="load" ns="arm" file="$(arg config)/arm.yaml"/>
     <rosparam command="load" ns="jaws" file="$(arg config)/jaws.yaml"/>
     <rosparam command="load" ns="camera" file="$(arg config)/camera.yaml"/>
+    <rosparam command="load" ns="vehicle" file="$(arg config)/vehicle.yaml"/>
     <rosparam command="load" ns="driver" file="$(arg config)/driver.yaml"/>
     <rosparam command="load" ns="cloud" file="$(arg config)/cloud.yaml"/>
     <rosparam command="load" ns="planner" file="$(arg config)/planner.yaml"/>
@@ -37,11 +39,12 @@
     <param name="cloud/switches/obstacle_averaging" type="bool" value="$(arg obstacle_averaging)"/>
 
     <param name="robot_description"
-           command="$(find xacro)/xacro $(find description)/urdf/arm.urdf.xacro arm_config:=$(arg config)/arm.yaml camera_config:=$(arg config)/camera.yaml"/>
+           command="$(find xacro)/xacro $(find description)/urdf/arm.urdf.xacro arm_config:=$(arg config)/arm.yaml camera_config:=$(arg config)/camera.yaml vehicle_config:=$(arg config)/vehicle.yaml"/>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
     <node name="driver" pkg="driver" type="driver_node" output="screen" required="true"/>
     <node name="cloud" pkg="cloud" type="cloud_node" output="screen"/>
+    <node if="$(arg park)" name="park" pkg="park" type="park_node" output="screen"/>
     <node name="planner" pkg="planner" type="planner_node" output="screen"/>
     <node name="executor" pkg="executor" type="executor_node" output="screen"/>
     <node if="$(arg task)" name="task" pkg="task" type="task_node" output="screen"/>

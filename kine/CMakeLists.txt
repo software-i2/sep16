@@ -16,7 +16,9 @@ add_library(kine
     src/ArmModel.cpp
     src/ForwardKinematics.cpp
     src/InverseKinematics.cpp
-    src/ArmBody.cpp)
+    src/ArmBody.cpp
+    src/Reach.cpp
+    src/ReachBuild.cpp)
 
 install(TARGETS kine
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

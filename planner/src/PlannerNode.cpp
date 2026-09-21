@@ -49,11 +49,37 @@ bool PlannerNode::currentJoints(kine::JointAngles &model_joints, std::string &wh
 void PlannerNode::onPlan(const msgs::PlanGoalConstPtr &goal) {
     msgs::PlanResult result;
 
+    // A scene latched before the vehicle moved arrives in the frame the arm base stood in
+    // then, not the one it stands in now. The candidates are carried across; the obstacle map
+    // is axis aligned and cannot be, so it stays where it was built and the grid is told how
+    // to get there.
+    Eigen::Isometry3d map_to_base = Eigen::Isometry3d::Identity();
+    const std::string scene       = goal->cloud.header.frame_id;
+    if (!scene.empty() && scene != config_.base_frame) {
+        try {
+            const geometry_msgs::TransformStamped tf =
+                    tf_buffer_.lookupTransform(config_.base_frame, scene, ros::Time(0),
+                                               ros::Duration(config_.transform_wait_s));
+            const geometry_msgs::Vector3    &t = tf.transform.translation;
+            const geometry_msgs::Quaternion &q = tf.transform.rotation;
+            map_to_base = Eigen::Translation3d(t.x, t.y, t.z) * Eigen::Quaterniond(q.w, q.x, q.y, q.z);
+        } catch (const tf2::TransformException &e) {
+            result.plan.header.stamp    = ros::Time::now();
+            result.plan.header.frame_id = config_.base_frame;
+            result.plan.summary = "cannot plan: no transform from '" + scene + "' to the arm base: " + e.what();
+            LOG_ERROR("[planner] %s", result.plan.summary.c_str());
+            PUBLISH_ROS(pub_result_, result.plan);
+            server_.setAborted(result, result.plan.summary);
+            return;
+        }
+    }
+
     std::vector<Candidate> candidates;
     for (const msgs::GraspPose &pose : goal->cloud.candidates) {
-        candidates.push_back({Eigen::Vector3d(pose.point.x, pose.point.y, pose.point.z),
-                              Eigen::Vector3d(pose.bar_axis.x, pose.bar_axis.y, pose.bar_axis.z),
-                              Eigen::Vector3d(pose.approach.x, pose.approach.y, pose.approach.z)});
+        candidates.push_back(
+                {map_to_base * Eigen::Vector3d(pose.point.x, pose.point.y, pose.point.z),
+                 map_to_base.linear() * Eigen::Vector3d(pose.bar_axis.x, pose.bar_axis.y, pose.bar_axis.z),
+                 map_to_base.linear() * Eigen::Vector3d(pose.approach.x, pose.approach.y, pose.approach.z)});
     }
 
     kine::JointAngles start;
@@ -68,8 +94,8 @@ void PlannerNode::onPlan(const msgs::PlanGoalConstPtr &goal) {
         return;
     }
 
-    const PlanOutcome outcome =
-            planner_.plan(candidates, goal->cloud.obstacles, start, [this]() { return server_.isPreemptRequested(); });
+    const PlanOutcome outcome = planner_.plan(candidates, goal->cloud.obstacles, start, map_to_base.inverse(),
+                                              [this]() { return server_.isPreemptRequested(); });
 
     result.plan = toMessage(outcome, goal->cloud);
     PUBLISH_ROS(pub_result_, result.plan);

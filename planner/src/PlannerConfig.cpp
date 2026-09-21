@@ -22,6 +22,7 @@ PlannerConfig loadPlannerConfig(params::Params &planner, params::Params &arm, pa
     c.max_approach_deviation = kine::degToRad(planner.number("max_approach_deviation_deg"));
     c.start_tolerance        = kine::degToRad(planner.number("start_tolerance_deg"));
     c.joint_state_timeout_s  = planner.number("joint_state_timeout_s");
+    c.transform_wait_s       = planner.number("transform_wait_s");
     for (int j = 0; j < kine::JOINT_COUNT; ++j) {
         c.joint_cost_weights[j] = planner.number(std::string("joint_cost_weights/") + kine::JOINT_KEYS[j]);
         planner.require(c.joint_cost_weights[j] > 0.0, std::string("joint_cost_weights/") + kine::JOINT_KEYS[j],

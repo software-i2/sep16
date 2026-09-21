@@ -49,7 +49,7 @@ ArmBody::ArmBody(const ArmModel &model, const JawShape &jaw, double blade_sample
     }
 }
 
-void ArmBody::pose(const JointAngles &joints, BodyPose &out) const {
+void ArmBody::pose(const JointAngles &joints, BodyPose &out, size_t blade_stride) const {
     const ArmPoints points = forwardKinematics(model_, joints);
     const JawAxes   axes   = jawAxes(model_, joints);
 
@@ -60,11 +60,13 @@ void ArmBody::pose(const JointAngles &joints, BodyPose &out) const {
     out.throat            = points.throat;
     out.tip               = points.tip;
 
-    out.blade_points.resize(blade_local_.size());
-    for (size_t i = 0; i < blade_local_.size(); ++i) {
+    const size_t step = std::max<size_t>(1, blade_stride);
+    out.blade_points.resize((blade_local_.size() + step - 1) / step);
+    size_t taken = 0;
+    for (size_t i = 0; i < blade_local_.size(); i += step) {
         const Eigen::Vector3d &local = blade_local_[i];
-        out.blade_points[i] = points.jaw_mount + axes.approach * local.x() + axes.hinge * local.y()
-                              + axes.closing * local.z();
+        out.blade_points[taken++] = points.jaw_mount + axes.approach * local.x() + axes.hinge * local.y()
+                                    + axes.closing * local.z();
     }
 }
 

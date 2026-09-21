@@ -1,14 +1,30 @@
 # Copyright by BeeX [2026]
 # Camera mounting and lens. Loaded into /camera and read by the URDF. Lengths m, angles deg.
 #
-# arm_base -> camera_mount: where the camera body sits. camera_mount has x along the view, y left, z up.
+# vehicle body -> camera_mount: where the camera body sits. camera_mount has x along the view, y left, z up.
 # camera_mount -> camera_link: the axes the camera publishes in. camera_link has x right, y up, and looks down -z.
+#
+# The camera is bolted to the vehicle, not to the arm, so it hangs off vehicle.yaml's
+# body_frame. Re-mounting the arm no longer moves it.
+#
+# The old [0.15, 0.05, 0.0] / [90, -90, 0] against arm_base was a fit chosen to give the
+# recorded bag a clean facing, not a measurement. It is gone. These describe the real mount:
+# the camera looks forward along the vehicle and its image is the right way up, so
+# camera_mount is simply aligned with the body frame.
+#
+# Expect the bag to get harder, not easier. Under the old fit the handle sat neatly inside
+# the workspace; measured properly it sits mostly beyond it, which is the case the vehicle
+# stage exists to fix.
 
 frame: camera_link                       # frame_id on the cloud and the grasp poses
 mount_frame: camera_mount
-mount_position_m: [0.15, 0.05, 0.0]       # camera_mount origin in arm_base, fitted by hand to the recorded bag
-mount_rpy_deg: [90.0, -90.0, 0.0]        # camera_mount orientation in arm_base
-frame_rpy_deg: [90.0, 0.0, -90.0]        # camera_link orientation in camera_mount
+mount_position_m: [0.0, -0.05, 0.0]      # camera_mount origin in the vehicle body frame
+mount_rpy_deg: [0.0, 0.0, 0.0]           # camera_mount orientation in the vehicle body frame
+# Not a mounting choice: it is the fixed step from the body convention camera_mount uses to
+# the optical one the driver publishes in. The optical axis is camera_link's -z, and yaw turns
+# about z, so the third number alone can never tip the camera off vertical. The roll does that;
+# the yaw then aims it along +x.
+frame_rpy_deg: [90.0, 0.0, -90.0]
 
 intrinsics:                              # pixel u = cx + fx * x / -z, v = cy - fy * y / -z; fitted to the bag to 0.0001 px
   width_px: 800

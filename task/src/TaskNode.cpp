@@ -13,6 +13,7 @@ namespace task {
 TaskNode::TaskNode(const TaskConfig &config)
         : config_(config),
           collect_(*mainNodeHandle, config.action_collect, false),
+          park_(*mainNodeHandle, config.action_park, false),
           planner_(*mainNodeHandle, config.action_plan, false),
           executor_(*mainNodeHandle, config.action_execute, false) {
     INIT_ROS_SERVICE_SERVER(srv_start_, config_.service_start, &TaskNode::onStart);
@@ -35,6 +36,9 @@ void TaskNode::tick() {
     case State::PROCESS:
         event = checkCollect(message);
         break;
+    case State::PARK:
+        event = checkPark(message);
+        break;
     case State::PLAN:
         event = checkPlan(message);
         break;
@@ -55,9 +59,10 @@ void TaskNode::tick() {
 
 bool TaskNode::onStart(std_srvs::Trigger::Request & /*req*/, std_srvs::Trigger::Response &res) {
     const ros::Duration wait(config_.server_wait_s);
-    if (!collect_.waitForServer(wait) || !planner_.waitForServer(wait) || !executor_.waitForServer(wait)) {
+    if (!collect_.waitForServer(wait) || !park_.waitForServer(wait) || !planner_.waitForServer(wait)
+        || !executor_.waitForServer(wait)) {
         res.success = false;
-        res.message = "the cloud, planner or executor node is not running";
+        res.message = "the cloud, park, planner or executor node is not running";
         LOG_WARN("[task] start refused: %s", res.message.c_str());
         return true;
     }
@@ -71,6 +76,7 @@ bool TaskNode::onStart(std_srvs::Trigger::Request & /*req*/, std_srvs::Trigger::
     }
     attempt_ = 0;
     grabbed_ = false;
+    parked_  = false;
     apply(Event::START, "started");
     res.success = true;
     res.message = "started";
@@ -123,6 +129,13 @@ void TaskNode::enter(State state, const std::string &message) {
                           actionlib::SimpleActionClient<msgs::CollectAction>::SimpleActiveCallback(),
                           boost::bind(&TaskNode::onCollectFeedback, this, _1));
         break;
+
+    case State::PARK: {
+        msgs::ParkGoal goal;
+        goal.cloud = cloud_;
+        park_.sendGoal(goal);
+        break;
+    }
 
     case State::PLAN: {
         msgs::PlanGoal goal;
@@ -210,12 +223,44 @@ Event TaskNode::checkCollect(std::string &message) {
     return Event::NONE;
 }
 
+Event TaskNode::checkPark(std::string &message) {
+    const actionlib::SimpleClientGoalState goal = park_.getState();
+    if (goal == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        const msgs::ParkResultConstPtr result = park_.getResult();
+        message = result->message;
+        if (!result->success) {
+            return Event::NO_PARK;
+        }
+        // Everything after this plans against the snapshot, in the frame the arm base stood
+        // in when it was taken. Collecting again here would look at the target from too close.
+        cloud_ = result->locked;
+        parked_ = true;
+        return Event::PARKED;
+    }
+    if (goal.isDone()) {
+        message = "park: " + goal.getText();
+        return Event::FAILURE;
+    }
+    return Event::NONE;
+}
+
 Event TaskNode::checkPlan(std::string &message) {
     const actionlib::SimpleClientGoalState goal = planner_.getState();
     if (goal == actionlib::SimpleClientGoalState::SUCCEEDED) {
         plan_   = planner_.getResult()->plan;
         message = plan_.summary;
-        return plan_.success ? Event::PLAN_FOUND : Event::NO_PLAN;
+        if (plan_.success) {
+            return Event::PLAN_FOUND;
+        }
+        // Collecting again after a park is worse than useless: the target is now too close to
+        // see well, and on a replayed bag the scene simply follows the camera, so every retry
+        // parks further forward and the handle stays exactly as far away as it was.
+        if (parked_) {
+            message += "; the park pose was reachable but blocked, and the scene is locked, so "
+                       "there is nothing to gain by looking again";
+            return Event::FAILURE;
+        }
+        return Event::NO_PLAN;
     }
     if (goal.isDone()) {
         message = "planner: " + goal.getText();

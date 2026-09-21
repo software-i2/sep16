@@ -28,6 +28,7 @@ struct TaskConfig {
     std::string topic_state;
     std::string topic_joint_states;
     std::string action_collect;
+    std::string action_park;
     std::string action_plan;
     std::string action_execute;
     std::string service_close_jaw;

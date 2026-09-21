@@ -30,9 +30,12 @@ class CandidatePlanner {
 public:
     explicit CandidatePlanner(const PlannerConfig &config);
 
-    // `start` in model radians. `cancelled` is polled between grasps.
+    // `start` in model radians. `cancelled` is polled between grasps. `base_to_map` carries a
+    // point in the arm base into the frame the map was built in, for a scene latched before
+    // the vehicle moved; it is the identity when the map is already in the arm base.
     PlanOutcome plan(const std::vector<Candidate> &candidates, const msgs::ObstacleMap &map,
-                     const kine::JointAngles &start, const std::function<bool()> &cancelled) const;
+                     const kine::JointAngles &start, const Eigen::Isometry3d &base_to_map,
+                     const std::function<bool()> &cancelled) const;
 
     const kine::ArmModel &model() const { return body_.model(); }
 

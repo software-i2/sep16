@@ -12,6 +12,8 @@ const char *stateName(State state) {
         return "COLLECT";
     case State::PROCESS:
         return "PROCESS";
+    case State::PARK:
+        return "PARK";
     case State::PLAN:
         return "PLAN";
     case State::EXECUTE:
@@ -31,8 +33,8 @@ const char *stateName(State state) {
 }
 
 State nextState(State state, Event event) {
-    const bool working = state == State::COLLECT || state == State::PROCESS || state == State::PLAN
-                         || state == State::EXECUTE || state == State::JAWCLOSING;
+    const bool working = state == State::COLLECT || state == State::PROCESS || state == State::PARK
+                         || state == State::PLAN || state == State::EXECUTE || state == State::JAWCLOSING;
     const bool finished = state == State::IDLE || state == State::DONE || state == State::FAILED
                           || state == State::STOPPED;
 
@@ -46,7 +48,11 @@ State nextState(State state, Event event) {
     case Event::PROCESSING:
         return state == State::COLLECT ? State::PROCESS : state;
     case Event::CANDIDATES_FOUND:
-        return state == State::COLLECT || state == State::PROCESS ? State::PLAN : state;
+        return state == State::COLLECT || state == State::PROCESS ? State::PARK : state;
+    case Event::PARKED:
+        return state == State::PARK ? State::PLAN : state;
+    case Event::NO_PARK:
+        return state == State::PARK ? State::RETRY : state;
     case Event::NO_CANDIDATES:
         return state == State::COLLECT || state == State::PROCESS ? State::RETRY : state;
     case Event::PLAN_FOUND:

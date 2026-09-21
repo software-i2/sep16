@@ -10,10 +10,12 @@ add_message_files(FILES
     Waypoint.msg
     JointPath.msg
     GraspPlan.msg
+    ParkPose.msg
     TaskState.msg)
 
 add_action_files(FILES
     Collect.action
+    Park.action
     Plan.action
     Execute.action)
 

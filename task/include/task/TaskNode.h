@@ -7,6 +7,7 @@
 #include <bx_msgs/RosBindings.hpp>
 #include <msgs/CollectAction.h>
 #include <msgs/ExecuteAction.h>
+#include <msgs/ParkAction.h>
 #include <msgs/PlanAction.h>
 #include <msgs/TaskState.h>
 #include <sensor_msgs/JointState.h>
@@ -38,6 +39,7 @@ private:
     void publishState(const std::string &message);
 
     Event checkCollect(std::string &message);
+    Event checkPark(std::string &message);
     Event checkPlan(std::string &message);
     Event checkExecute(std::string &message);
     Event checkJaw(std::string &message);
@@ -52,6 +54,7 @@ private:
     ros::Time         entered_at_;
     uint32_t          attempt_    = 0;
     bool              grabbed_    = false;
+    bool              parked_     = false;
     msgs::CloudResult cloud_;
     msgs::GraspPlan   plan_;
     std::atomic<bool> processing_{false};
@@ -65,6 +68,7 @@ private:
     ros::Time  jaw_still_since_;
 
     actionlib::SimpleActionClient<msgs::CollectAction> collect_;
+    actionlib::SimpleActionClient<msgs::ParkAction>    park_;
     actionlib::SimpleActionClient<msgs::PlanAction>    planner_;
     actionlib::SimpleActionClient<msgs::ExecuteAction> executor_;
 

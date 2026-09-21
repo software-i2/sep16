@@ -34,7 +34,11 @@ public:
     // Samples the blade profile every `blade_sample_step` metres. Throws std::invalid_argument on a bad shape.
     ArmBody(const ArmModel &model, const JawShape &jaw, double blade_sample_step);
 
-    void pose(const JointAngles &joints, BodyPose &out) const;
+    // `blade_stride` above 1 poses every nth blade sample instead of all of them. Placing the
+    // points is what a posture costs, not the lookups that follow, so a coarse screen must
+    // skip them here rather than skip testing them. Skipping can only miss a collision, never
+    // invent one, so a coarse pass stays optimistic. Collision checking uses the default.
+    void pose(const JointAngles &joints, BodyPose &out, size_t blade_stride = 1) const;
 
     const ArmModel &model() const { return model_; }
     size_t          pointsPerBlade() const { return blade_local_.size() / 2; }

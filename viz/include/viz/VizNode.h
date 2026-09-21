@@ -25,12 +25,16 @@ public:
     // Redraws the collision body at the latest joints. Call at arm_body_rate_hz.
     void drawArmBody();
 
+    // The floor is a plane in the arm base, so it travels with the vehicle. Drawn once it
+    // keeps its first stamp, and the transform cannot be resolved there any more the moment
+    // the base moves, so it has to be redrawn alongside the body.
+    void drawFloor();
+
 private:
     void onJointStates(const sensor_msgs::JointState::ConstPtr &msg);
     void onCloudResult(const msgs::CloudResult::ConstPtr &msg);
     void onPlanResult(const msgs::GraspPlan::ConstPtr &msg);
 
-    void drawFloor();
     bool modelJoints(const std::vector<std::string> &names, const std::vector<double> &positions,
                      kine::JointAngles &out) const;
     visualization_msgs::Marker marker(const std::string &name, int type, const std_msgs::ColorRGBA &colour) const;

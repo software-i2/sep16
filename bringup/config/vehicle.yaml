@@ -1,0 +1,59 @@
+# Copyright by BeeX [2026]
+# Where the arm sits on the vehicle, and the bounded search for a parking pose.
+# Loaded into /vehicle and read by the URDF. Lengths m, angles deg.
+#
+# The vehicle body frame is NOT called base_link: alpha.urdf.xacro already names the arm's own
+# root link base_link, and arm.urdf.xacro instantiates it with an empty prefix.
+
+body_frame: vehicle_base                 # root of the robot description, the frame the vehicle is commanded in
+locked_frame: world_locked               # world frame the vehicle moves in, fixed when the target is locked
+scene_frame: scene_locked                # where the arm base stood when the scene was latched; the snapshot lives here
+
+# arm_base in body_frame, ROS vehicle convention: +x forward, +y port, +z up.
+#
+# UNMEASURED. Measure the displacement from the vehicle origin to the arm shoulder base and
+# put it here. A hand fit biases every parking pose in the same direction, and unlike camera
+# scatter it will not show up as noise in any test.
+arm_mount_position_m: [0.0, 0.0, 0.0]
+
+# The arm is mounted inverted: rolled 180 deg about x, so arm_base +z points down in the
+# vehicle. Consequence: planner.yaml's safety_floor_z_m is a plane in arm_base, so it now
+# guards the vehicle's own hull, not the seabed.
+arm_mount_rpy_deg: [180.0, 0.0, 0.0]
+
+search:                                  # bounded so the pose search cannot explode
+  box_xy_m: 2.0
+  box_z_m: 0.5
+  box_yaw_deg: 45.0
+  coarse_step_m: 0.100
+  coarse_step_deg: 9.0
+  fine_step_m: 0.025
+  fine_step_deg: 3.0
+  refine_count: 20                       # coarse cells to refine around
+  min_grasps: 1                          # refuse to park anywhere holding fewer than this
+  min_routable: 1                        # and do not move at all unless this many grasps have a route from
+                                         # where the arm stands; arriving somewhere unworkable cannot be undone
+  standoff_min_m: 0.20                   # a grasp only counts while the camera is inside this band;
+  standoff_max_m: 0.30                   # nearer and the depth is rubbish, further and the arm cannot follow it in
+  verify_count: 1200                     # most poses to put through the full collision check
+  verify_budget_s: 6.0                   # and never spend longer than this doing it, whatever the count
+  verify_blade_stride: 20                # screening tests every nth jaw sample; optimistic, so the winner is rechecked
+  verify_exact_count: 12                 # best screened poses re-tested at full blade fidelity
+  transit_samples: 16                    # points along the drive where the arm is checked against the scene
+
+move:                                    # the simulated vehicle; a real one takes a setpoint instead
+  speed_m_s: 0.05
+  rate_hz: 20.0
+
+# The snapshot is carried through the move by dead reckoning, so it slips from the truth by
+# however badly the vehicle's own pose is known. Zero means the vehicle lands exactly where it
+# was told, which flatters every result; raise it to find out how much margin a park pose needs.
+drift:
+  per_metre_m: 0.0
+  yaw_per_metre_deg: 0.0
+
+reach_table:
+  cell_m: 0.002                          # below the obstacle voxel size, so the table is never the coarsest step
+  roll_samples: 0                        # wrist rolls tried when bounding how low the blades hang; 0 leaves them out
+  axis_samples: 256                      # wrist-axis samples in that bound, unused while roll_samples is 0
+  cache_path: ""                         # empty rebuilds every start; a path caches, keyed by a hash of the geometry

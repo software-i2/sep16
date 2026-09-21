@@ -9,6 +9,7 @@ grasp_point_from_mount_m: 0.060          # where the handle sits between the bla
 max_approach_deviation_deg: 0.0          # 0 turns the check off; otherwise the jaw must come in within this angle of the candidate's approach
 start_tolerance_deg: 1.5                 # a start reading this far past a joint limit is treated as on the limit
 joint_state_timeout_s: 0.5               # the start pose must come from joint_states newer than this
+transform_wait_s: 0.5                    # how long to wait for the transform when the scene was latched in another frame
 
 joint_cost_weights: {base: 1.0, shoulder: 1.0, elbow: 1.0, wrist: 1.0}  # cost = sum of weight * joint travel
 

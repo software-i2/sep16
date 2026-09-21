@@ -4,14 +4,24 @@
 
     <xacro:arg name="arm_config" default=""/>
     <xacro:arg name="camera_config" default=""/>
+    <xacro:arg name="vehicle_config" default=""/>
     <xacro:property name="arm" value="${xacro.load_yaml('$(arg arm_config)')}"/>
     <xacro:property name="camera" value="${xacro.load_yaml('$(arg camera_config)')}"/>
+    <xacro:property name="vehicle" value="${xacro.load_yaml('$(arg vehicle_config)')}"/>
+
+    <link name="${vehicle['body_frame']}"/>
 
     <link name="${arm['base_frame']}"/>
+    <joint name="${arm['base_frame']}_joint" type="fixed">
+        <parent link="${vehicle['body_frame']}"/>
+        <child link="${arm['base_frame']}"/>
+        <origin xyz="${vehicle['arm_mount_position_m'][0]} ${vehicle['arm_mount_position_m'][1]} ${vehicle['arm_mount_position_m'][2]}"
+                rpy="${radians(vehicle['arm_mount_rpy_deg'][0])} ${radians(vehicle['arm_mount_rpy_deg'][1])} ${radians(vehicle['arm_mount_rpy_deg'][2])}"/>
+    </joint>
 
     <link name="${camera['mount_frame']}"/>
     <joint name="${camera['mount_frame']}_joint" type="fixed">
-        <parent link="${arm['base_frame']}"/>
+        <parent link="${vehicle['body_frame']}"/>
         <child link="${camera['mount_frame']}"/>
         <origin xyz="${camera['mount_position_m'][0]} ${camera['mount_position_m'][1]} ${camera['mount_position_m'][2]}"
                 rpy="${radians(camera['mount_rpy_deg'][0])} ${radians(camera['mount_rpy_deg'][1])} ${radians(camera['mount_rpy_deg'][2])}"/>

@@ -5,7 +5,7 @@
 
 namespace task {
 
-enum class State { IDLE, COLLECT, PROCESS, PLAN, EXECUTE, JAWCLOSING, DONE, RETRY, FAILED, STOPPED };
+enum class State { IDLE, COLLECT, PROCESS, PARK, PLAN, EXECUTE, JAWCLOSING, DONE, RETRY, FAILED, STOPPED };
 
 enum class Event {
     NONE,              // nothing happened this tick
@@ -14,6 +14,8 @@ enum class Event {
     PROCESSING,        // the cloud node has its frames and is processing them
     CANDIDATES_FOUND,
     NO_CANDIDATES,
+    PARKED,            // the vehicle reached a pose the arm can work from
+    NO_PARK,           // nowhere in the bounded box brings the target into reach
     PLAN_FOUND,
     NO_PLAN,
     REACHED,           // the executor reached the grasp

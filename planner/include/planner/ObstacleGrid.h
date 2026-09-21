@@ -6,6 +6,7 @@
 #include <msgs/ObstacleMap.h>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include <cstdint>
 #include <vector>
@@ -21,10 +22,16 @@ public:
     bool linkBlocked(const Eigen::Vector3d &point) const;
     bool bladeBlocked(const Eigen::Vector3d &point) const;
 
+    // Where the arm now stands, relative to the frame the map was built in. The map stays
+    // frozen and the query point is carried back into it, so a base that has moved since the
+    // scene was latched costs one transform per lookup instead of a resampled grid.
+    void setQueryToMap(const Eigen::Isometry3d &query_to_map) { query_to_map_ = query_to_map; }
+
 private:
     long cellAt(const Eigen::Vector3d &point) const;
     void inflate(const std::vector<uint32_t> &cells, double radius, std::vector<uint8_t> &layer) const;
 
+    Eigen::Isometry3d    query_to_map_ = Eigen::Isometry3d::Identity();
     Eigen::Vector3d      origin_;
     double               voxel_size_ = 0.0;
     long                 size_x_     = 0;

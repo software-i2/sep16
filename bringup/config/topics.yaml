@@ -14,6 +14,10 @@ driver_standby: /driver/standby          # std_srvs/Trigger: release every joint
 
 cloud_collect: /cloud/collect            # msgs/Collect action
 cloud_result: /cloud/result              # msgs/CloudResult, latched
+park_park: /park/park                    # msgs/Park action
+park_result: /park/result                # msgs/ParkPose, latched
+park_reset: /park/reset                  # std_srvs/Trigger: put the vehicle back at the origin and drop the lock
+park_locked_cloud: /park/locked_cloud    # msgs/CloudResult in the scene frame, latched: the snapshot the pick is planned against
 planner_plan: /planner/plan              # msgs/Plan action
 planner_result: /planner/result          # msgs/GraspPlan, latched
 executor_execute: /executor/execute      # msgs/Execute action

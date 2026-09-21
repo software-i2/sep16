@@ -1,7 +1,7 @@
 # Copyright by BeeX [2026]
 # Jaw geometry. Loaded into /jaws. Lengths m, angles deg.
 
-mount_to_throat_m: 0.0400                # jaw mount face to where the blades meet, along the wrist axis
+mount_to_throat_m: 0.0300                # jaw mount face to where the blades meet, along the wrist axis
 mount_to_tip_m: 0.0969                   # jaw mount face to the blade tips, along the wrist axis
 palm_length_m: 0.00975                   # palm cylinder in front of the mount
 hinge_roll_at_wrist_zero_deg: -60.0      # roll of the blade hinge axis when the wrist reads zero

@@ -49,10 +49,11 @@ bool ObstacleGrid::bladeBlocked(const Eigen::Vector3d &point) const {
     return cell >= 0 && blade_blocked_[cell] != 0;
 }
 
-long ObstacleGrid::cellAt(const Eigen::Vector3d &point) const {
-    const double x = std::floor((point.x() - origin_.x()) / voxel_size_);
-    const double y = std::floor((point.y() - origin_.y()) / voxel_size_);
-    const double z = std::floor((point.z() - origin_.z()) / voxel_size_);
+long ObstacleGrid::cellAt(const Eigen::Vector3d &query) const {
+    const Eigen::Vector3d point = query_to_map_ * query;
+    const double          x     = std::floor((point.x() - origin_.x()) / voxel_size_);
+    const double          y     = std::floor((point.y() - origin_.y()) / voxel_size_);
+    const double          z     = std::floor((point.z() - origin_.z()) / voxel_size_);
     if (x < 0.0 || y < 0.0 || z < 0.0 || x >= size_x_ || y >= size_y_ || z >= size_z_) {
         return -1;
     }
