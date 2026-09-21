@@ -3,6 +3,7 @@
 #ifndef VIZ_VIZCONFIG_H
 #define VIZ_VIZCONFIG_H
 
+#include <kine/ArmBody.h>
 #include <kine/ArmModel.h>
 #include <params/Params.h>
 #include <std_msgs/ColorRGBA.h>
@@ -17,8 +18,8 @@ struct VizConfig {
     kine::ArmConfig                            arm;
     std::string                                base_frame;
     std::array<std::string, kine::JOINT_COUNT> joint_names;
-    double                                     link_radius    = 0.0;
-    double                                     safety_floor_z = 0.0;
+    double                                     link_radius = 0.0;
+    kine::FloorGuard                           floor_guard;
 
     double arm_body_rate_hz    = 0.0;
     double blade_draw_step     = 0.0;
@@ -26,7 +27,6 @@ struct VizConfig {
     double grasp_pose_size     = 0.0;
     double chosen_grasp_length = 0.0;
     double line_width          = 0.0;
-    double floor_size          = 0.0;
 
     std_msgs::ColorRGBA arm_body_colour;
     std_msgs::ColorRGBA handle_colour;

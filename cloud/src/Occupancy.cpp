@@ -4,40 +4,60 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <limits>
 
 namespace cloud {
 namespace {
 
+// How much a step across the surface stretches when measured along the view ray: 1/cos of the
+// angle between the surface and the ray. One on a surface square to the camera, large on a
+// grazing one, where a cell centre a fraction of a voxel off the surface reads as far in front of it.
+double rayStretch(const CameraModel &camera, const DepthImage &depth, int u, int v, double limit) {
+    const double range = depth.at(u, v);
+    if (!(range > kMinimumDepth)) {
+        return 1.0;
+    }
+    double across = 0.0;
+    double down   = 0.0;
+    if (u > 0 && u + 1 < camera.width && depth.seen(u - 1, v) && depth.seen(u + 1, v)) {
+        across = 0.5 * (depth.at(u + 1, v) - depth.at(u - 1, v)) * camera.fx / range;
+    }
+    if (v > 0 && v + 1 < camera.height && depth.seen(u, v - 1) && depth.seen(u, v + 1)) {
+        down = 0.5 * (depth.at(u, v + 1) - depth.at(u, v - 1)) * camera.fy / range;
+    }
+    return std::min(std::sqrt(1.0 + across * across + down * down), limit);
+}
+
 // True when the measured surface in the cell's pixel lies clearly behind the cell, so the camera saw through it.
 bool seenThrough(const Eigen::Vector3d &centre_in_camera, const CameraModel &camera, const DepthImage &depth,
-                 double tolerance) {
+                 const OccupancySettings &settings, double half_diagonal) {
     int u = 0;
     int v = 0;
     if (!pixelOf(camera, centre_in_camera, u, v) || !depth.seen(u, v)) {
         return false;
     }
-    return -centre_in_camera.z() < depth.at(u, v) - tolerance;
+    // The centre stands for the whole cell, so it sits up to half a diagonal off the surface that
+    // filled it. Along the ray that offset is stretched, and below it the cell is measuring itself.
+    const double slack = settings.free_space_tolerance
+                         + half_diagonal * rayStretch(camera, depth, u, v, settings.max_ray_stretch);
+    return -centre_in_camera.z() < depth.at(u, v) - slack;
 }
 
 }  // namespace
 
 std::vector<uint32_t> occupiedCells(const CameraFrame &frame, const CameraModel &camera, const VoxelGrid &grid,
-                                    double crop_radius, const DepthImage &depth, const OutlierFilter *filter,
+                                    const DepthImage &depth, const OutlierFilter *filter,
                                     const std::vector<uint8_t> &handle_region, const OccupancySettings &settings) {
     constexpr uint8_t kMaxCount = std::numeric_limits<uint8_t>::max();
 
     std::vector<uint8_t> hits(static_cast<size_t>(grid.cellCount()), 0);
     std::vector<long>    touched;
-    const double         crop_radius2 = crop_radius * crop_radius;
 
     for (const Eigen::Vector3f &point : frame.points) {
         const Eigen::Vector3d in_camera = point.cast<double>();
         const Eigen::Vector3d in_base   = frame.camera_to_base * in_camera;
-        if (in_base.squaredNorm() > crop_radius2) {
-            continue;
-        }
-        const long cell = grid.cellOf(in_base);
+        const long            cell      = grid.cellOf(in_base);
         if (cell < 0) {
             continue;
         }
@@ -55,10 +75,11 @@ std::vector<uint32_t> occupiedCells(const CameraFrame &frame, const CameraModel 
     }
 
     const Eigen::Isometry3d base_to_camera = frame.camera_to_base.inverse();
+    const double            half_diagonal  = 0.5 * std::sqrt(3.0) * grid.voxelSize();
     std::vector<uint32_t>   occupied;
     for (const long cell : touched) {
         if (hits[cell] >= settings.min_points_per_voxel || handle_region[cell] != 0
-            || !seenThrough(base_to_camera * grid.centreOf(cell), camera, depth, settings.free_space_tolerance)) {
+            || !seenThrough(base_to_camera * grid.centreOf(cell), camera, depth, settings, half_diagonal)) {
             occupied.push_back(static_cast<uint32_t>(cell));
         }
     }
@@ -84,7 +105,7 @@ std::vector<uint32_t> voteOccupied(const std::vector<std::vector<uint32_t>> &fra
                         const long x = centre[0] + dx;
                         const long y = centre[1] + dy;
                         const long z = centre[2] + dz;
-                        if (x < 0 || y < 0 || z < 0 || x >= grid.size() || y >= grid.size() || z >= grid.size()) {
+                        if (x < 0 || y < 0 || z < 0 || x >= grid.sizeX() || y >= grid.sizeY() || z >= grid.sizeZ()) {
                             continue;
                         }
                         const long neighbour = grid.cellAt(x, y, z);

@@ -3,6 +3,7 @@
 #ifndef PARK_PARKCONFIG_H
 #define PARK_PARKCONFIG_H
 
+#include <kine/ArmBody.h>
 #include <kine/ArmModel.h>
 #include <kine/Joints.h>
 #include <params/Params.h>
@@ -23,12 +24,15 @@ struct ParkConfig {
     std::array<std::string, kine::JOINT_COUNT> joint_names;
 
     std::array<double, 3> camera_mount_position{{0.0, 0.0, 0.0}};
+    std::array<double, 3> camera_mount_rpy{{0.0, 0.0, 0.0}};
+    std::array<double, 3> camera_frame_rpy{{0.0, 0.0, 0.0}};
+    std::string           camera_anchor_frame;
     std::array<double, 3> arm_mount_position{{0.0, 0.0, 0.0}};
     std::array<double, 3> arm_mount_rpy{{0.0, 0.0, 0.0}};
 
-    double grasp_point_from_mount = 0.0;
-    double safety_floor_z         = 0.0;
-    double blade_sample_step      = 0.0;
+    double           grasp_point_from_mount = 0.0;
+    kine::FloorGuard floor_guard;
+    double           blade_sample_step = 0.0;
 
     double      reach_cell         = 0.0;
     int         reach_roll_samples = 0;

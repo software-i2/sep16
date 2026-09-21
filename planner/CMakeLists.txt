@@ -15,7 +15,7 @@ compile_my_exec(planner_node
     src/PlannerConfig.cpp
     src/CandidatePlanner.cpp
     src/GraspGoals.cpp
-    src/BiRrtStar.cpp
+    src/BiRrt.cpp
     src/CollisionChecker.cpp
     src/ObstacleGrid.cpp)
 target_link_libraries(planner_node pthread)

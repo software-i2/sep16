@@ -3,6 +3,7 @@
 #ifndef KINE_READCONFIG_H
 #define KINE_READCONFIG_H
 
+#include <kine/ArmBody.h>
 #include <kine/ArmModel.h>
 
 #include <string>
@@ -47,6 +48,20 @@ ArmConfig readArmConfig(Reader &arm, Reader &jaws) {
         jaw.blade_profile.push_back({row[0], row[1], row[2], row[3], row[4]});
     }
     return c;
+}
+
+// Reads the vehicle underside out of bringup/config/planner.yaml.
+template <class Reader>
+FloorGuard readFloorGuard(Reader &planner) {
+    FloorGuard guard;
+    guard.floor_z = planner.number("safety_floor_z_m");
+    guard.min_x   = planner.number("vehicle_footprint_m/min_x");
+    guard.max_x   = planner.number("vehicle_footprint_m/max_x");
+    guard.min_y   = planner.number("vehicle_footprint_m/min_y");
+    guard.max_y   = planner.number("vehicle_footprint_m/max_y");
+    planner.require(guard.max_x > guard.min_x, "vehicle_footprint_m/max_x", "greater than min_x");
+    planner.require(guard.max_y > guard.min_y, "vehicle_footprint_m/max_y", "greater than min_y");
+    return guard;
 }
 
 }  // namespace kine

@@ -15,15 +15,15 @@ void markCapsule(const VoxelGrid &grid, const Eigen::Vector3d &a, const Eigen::V
                  std::vector<uint8_t> &mask) {
     const Eigen::Vector3d low  = (a.cwiseMin(b) - Eigen::Vector3d::Constant(radius) - grid.origin()) / grid.voxelSize();
     const Eigen::Vector3d high = (a.cwiseMax(b) + Eigen::Vector3d::Constant(radius) - grid.origin()) / grid.voxelSize();
-    const auto clampAxis       = [&](double value) {
-        return std::min(std::max(static_cast<long>(std::floor(value)), 0L), grid.size() - 1);
+    const auto clampAxis       = [&](double value, int axis) {
+        return std::min(std::max(static_cast<long>(std::floor(value)), 0L), grid.sizeOn(axis) - 1);
     };
 
     const Eigen::Vector3d segment = b - a;
     const double          length2 = std::max(segment.squaredNorm(), kShortestSegment * kShortestSegment);
-    for (long z = clampAxis(low.z()); z <= clampAxis(high.z()); ++z) {
-        for (long y = clampAxis(low.y()); y <= clampAxis(high.y()); ++y) {
-            for (long x = clampAxis(low.x()); x <= clampAxis(high.x()); ++x) {
+    for (long z = clampAxis(low.z(), 2); z <= clampAxis(high.z(), 2); ++z) {
+        for (long y = clampAxis(low.y(), 1); y <= clampAxis(high.y(), 1); ++y) {
+            for (long x = clampAxis(low.x(), 0); x <= clampAxis(high.x(), 0); ++x) {
                 const long            cell   = grid.cellAt(x, y, z);
                 const Eigen::Vector3d centre = grid.centreOf(cell);
                 const double t = std::min(std::max((centre - a).dot(segment) / length2, 0.0), 1.0);
@@ -57,7 +57,7 @@ std::vector<uint8_t> handleRegion(const VoxelGrid &grid, const std::vector<Grasp
                     const long z = c[2] + dz;
                     const double offset2 = (dx * dx + dy * dy + dz * dz) * grid.voxelSize() * grid.voxelSize();
                     if (offset2 <= settings.radius * settings.radius && x >= 0 && y >= 0 && z >= 0
-                        && x < grid.size() && y < grid.size() && z < grid.size()) {
+                        && x < grid.sizeX() && y < grid.sizeY() && z < grid.sizeZ()) {
                         mask[grid.cellAt(x, y, z)] = 1;
                     }
                 }

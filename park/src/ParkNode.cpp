@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 
 #include <algorithm>
+#include <cstdio>
 #include <cmath>
 
 namespace park {
@@ -33,7 +34,7 @@ ParkNode::ParkNode(const ParkConfig &config)
 
     kine::ReachSpec spec;
     spec.along             = model.dimensions().wrist_to_jaw_mount + config_.grasp_point_from_mount;
-    spec.floor_z           = config_.safety_floor_z;
+    spec.floor_z           = config_.floor_guard.floor_z;
     spec.cell              = config_.reach_cell;
     spec.blade_sample_step = config_.blade_sample_step;
     spec.roll_samples      = config_.reach_roll_samples;
@@ -54,9 +55,15 @@ ParkNode::ParkNode(const ParkConfig &config)
              table_.spec().cells_z, spec.along);
 
     body_to_arm_ = fromParts(config_.arm_mount_position, config_.arm_mount_rpy).inverse();
+
+    // Where camera_link sits on the body. Broadcast off the world frame instead of the body,
+    // it becomes the fixed viewpoint the bag was recorded from.
+    Eigen::Isometry3d frame_turn = Eigen::Isometry3d::Identity();
+    frame_turn.linear()          = fromParts({{0.0, 0.0, 0.0}}, config_.camera_frame_rpy).linear();
+    body_to_camera_ = fromParts(config_.camera_mount_position, config_.camera_mount_rpy) * frame_turn;
     const Eigen::Vector3d camera_in_body(config_.camera_mount_position[0], config_.camera_mount_position[1],
                                          config_.camera_mount_position[2]);
-    search_.reset(new PoseSearch(table_, config_.search, body_to_arm_, camera_in_body, config_.safety_floor_z));
+    search_.reset(new PoseSearch(table_, config_.search, body_to_arm_, camera_in_body));
 
     INIT_ROS_SUBSCRIBER(sub_joint_states_, config_.topic_joint_states, 1, &ParkNode::onJointStates);
     INIT_ROS_SERVICE_SERVER(srv_reset_, config_.service_reset, &ParkNode::onReset);
@@ -78,7 +85,7 @@ Eigen::Isometry3d stepOf(const Pose &pose) {
     return step;
 }
 
-// The first thing BiRrtStar tries is the straight line from start to goal; when it is clear
+// The first thing BiRrt tries is the straight line from start to goal; when it is clear
 // the plan is that line and nothing else has to be searched. A grasp that fails this is the
 // one that comes back as no_path, so it is worth knowing before the vehicle commits.
 bool lineClear(planner::CollisionChecker &checker, const kine::JointAngles &from, const kine::JointAngles &to,
@@ -113,15 +120,16 @@ bool ParkNode::onReset(std_srvs::Trigger::Request & /*req*/, std_srvs::Trigger::
         res.message = "a park is running, stop it before resetting";
         return true;
     }
+    const Pose spawn;
     {
         std::lock_guard<std::mutex> lock(where_mutex_);
-        where_ = Pose();
+        where_ = spawn;
     }
     {
         std::lock_guard<std::mutex> lock(scene_mutex_);
         scene_locked_ = false;
     }
-    broadcast(Pose(), ros::Time::now());
+    broadcast(spawn, ros::Time::now());
     res.success = true;
     res.message = "vehicle back at the origin";
     LOG_INFO("[park] %s", res.message.c_str());
@@ -150,8 +158,7 @@ kine::JointAngles ParkNode::currentJoints() const {
 
 bool ParkNode::transitClear(const Pose &from, const Pose &to, planner::ObstacleGrid &grid,
                             const kine::JointAngles &held, size_t blade_stride) const {
-    planner::CollisionChecker checker(*body_, grid, config_.safety_floor_z, config_.link_sample_step,
-                                      blade_stride);
+    planner::CollisionChecker checker(*body_, grid, config_.floor_guard, config_.link_sample_step, blade_stride);
     for (int n = 0; n <= config_.transit_samples; ++n) {
         const double share = static_cast<double>(n) / config_.transit_samples;
         Pose         along;
@@ -173,8 +180,7 @@ ParkNode::Verdict ParkNode::verify(const std::vector<Grasp> &grasps, const Pose 
     // stand at `pose`, expressed back in that frame, is what the grid has to be queried with.
     grid.setQueryToMap(queryToMap(pose));
 
-    planner::CollisionChecker checker(*body_, grid, config_.safety_floor_z, config_.link_sample_step,
-                                      blade_stride);
+    planner::CollisionChecker checker(*body_, grid, config_.floor_guard, config_.link_sample_step, blade_stride);
     const planner::GraspSettings settings{config_.grasp_point_from_mount, config_.max_approach_deviation,
                                           config_.joint_cost_weights};
 
@@ -233,6 +239,20 @@ void ParkNode::broadcast(const Pose &pose, const ros::Time &stamp) {
     body.transform.rotation.w    = std::cos(0.5 * pose.yaw);
     body.transform.rotation.z    = std::sin(0.5 * pose.yaw);
     sent.push_back(body);
+
+    geometry_msgs::TransformStamped anchor;
+    const Eigen::Quaterniond        anchor_turn(body_to_camera_.linear());
+    anchor.header.stamp    = stamp;
+    anchor.header.frame_id = config_.locked_frame;
+    anchor.child_frame_id  = config_.camera_anchor_frame;
+    anchor.transform.translation.x = body_to_camera_.translation().x();
+    anchor.transform.translation.y = body_to_camera_.translation().y();
+    anchor.transform.translation.z = body_to_camera_.translation().z();
+    anchor.transform.rotation.x    = anchor_turn.x();
+    anchor.transform.rotation.y    = anchor_turn.y();
+    anchor.transform.rotation.z    = anchor_turn.z();
+    anchor.transform.rotation.w    = anchor_turn.w();
+    sent.push_back(anchor);
 
     std::lock_guard<std::mutex> lock(scene_mutex_);
     if (scene_locked_) {

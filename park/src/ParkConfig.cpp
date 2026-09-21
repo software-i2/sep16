@@ -25,7 +25,7 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     }
 
     c.grasp_point_from_mount = planner.number("grasp_point_from_mount_m");
-    c.safety_floor_z         = planner.number("safety_floor_z_m");
+    c.floor_guard            = kine::readFloorGuard(planner);
     c.blade_sample_step      = planner.number("blade_sample_step_m");
 
     c.reach_cell         = vehicle.number("reach_table/cell_m");
@@ -45,10 +45,15 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     c.search.standoff_min = vehicle.number("search/standoff_min_m");
     c.search.standoff_max = vehicle.number("search/standoff_max_m");
 
-    const std::vector<double> camera_position = camera.numbers("mount_position_m", 3);
+    const std::vector<double> camera_position  = camera.numbers("mount_position_m", 3);
+    const std::vector<double> camera_mount_rpy  = camera.numbers("mount_rpy_deg", 3);
+    const std::vector<double> camera_frame_rpy  = camera.numbers("frame_rpy_deg", 3);
     for (int i = 0; i < 3; ++i) {
         c.camera_mount_position[i] = camera_position[i];
+        c.camera_mount_rpy[i]      = kine::degToRad(camera_mount_rpy[i]);
+        c.camera_frame_rpy[i]      = kine::degToRad(camera_frame_rpy[i]);
     }
+    c.camera_anchor_frame = vehicle.text("camera_anchor_frame");
     c.verify_count       = vehicle.whole("search/verify_count");
     c.verify_budget      = vehicle.number("search/verify_budget_s");
     c.edge_check_step    = kine::degToRad(planner.number("rrt/edge_check_step_deg"));

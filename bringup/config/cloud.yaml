@@ -6,7 +6,14 @@ frames_to_advance: 2                     # new frames per attempt; the rest are 
 max_reuse_gap_s: 2.0                     # frames are only reused when the last attempt was this recent; a longer gap means the arm has moved through the view
 frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
 transform_wait_s: 0.2                    # how long to wait for the camera transform at the frame's own stamp
+anchor_frame: camera_anchor              # treat every cloud as seen from this frame rather than from camera_link;
+                                         # empty uses camera_link, which on a replayed bag drags the scene along
+                                         # with the vehicle
 voxel_size_m: 0.0025                     # obstacle map resolution; at 5 mm the blade keep-out quantises to a 7-cell cross and blocks head-on grasps
+crop_margin_m: 1.0                       # kept beyond the arm's own reach, because the snapshot is planned against
+                                         # from wherever the park search sends the vehicle, not from where the frame
+                                         # was taken. Cover vehicle.yaml's search/box_xy_m and the grid still fits the
+                                         # scene: the box is sized to the points, not to this radius
 
 pose_axes:                               # which column of a grasp pose rotation means what
   approach_column: 0
@@ -20,6 +27,9 @@ outlier_filter:                          # flying pixel test on the depth image
 occupancy:
   min_points_per_voxel: 2                # a voxel with fewer points only counts if the camera could not see through it
   free_space_tolerance_m: 0.005          # a voxel is seen through when the measured surface is this far behind it
+  max_surface_tilt_deg: 85.0             # on a surface seen edge-on, a voxel centre half a diagonal off it reads as
+                                         # far in front of it, so the tolerance above is stretched by 1/cos(tilt).
+                                         # This caps the stretch, or a silhouette edge would keep every voxel behind it
 
 handle_region:                           # voxels this close to a handle pose are handle surface, not obstacle
   radius_m: 0.005
@@ -58,6 +68,6 @@ candidate_averaging:
     drift_direction_ratio: 0.2           # drift is only estimated along directions constrained at least this well, relative to the best
     drift_significance_sigmas: 3.0       # drift within this many standard errors of zero is treated as noise
 
-obstacle_averaging:
-  min_frames_occupied: 3                 # a voxel is an obstacle when this many frames saw it occupied
+obstacle_averaging:                      # off by default: see switches/obstacle_averaging in bringup.launch
+  min_frames_occupied: 2                 # a voxel is an obstacle when this many frames saw it occupied
   vote_radius_voxels: 1                  # how far a frame's vote reaches, in voxels; 0 is the cell alone, 2 is 5 mm at this resolution

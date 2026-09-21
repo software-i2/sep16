@@ -1,6 +1,6 @@
 // Copyright by BeeX [2026]
 
-#include <planner/BiRrtStar.h>
+#include <planner/BiRrt.h>
 
 #include <algorithm>
 #include <chrono>
@@ -20,11 +20,10 @@ double secondsSince(const Clock::time_point &start) {
 
 }  // namespace
 
-BiRrtStar::BiRrtStar(CollisionChecker &checker, const RrtSettings &settings, const kine::JointAngles &weights)
+BiRrt::BiRrt(CollisionChecker &checker, const RrtSettings &settings, const kine::JointAngles &weights)
         : checker_(checker), settings_(settings), weights_(weights) {}
 
-bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners,
-                     double budget_s) {
+bool BiRrt::plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners, double budget_s) {
     random_.seed(static_cast<uint64_t>(settings_.random_seed));
     corners.clear();
     started_ = Clock::now();
@@ -43,14 +42,11 @@ bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &go
     Tree *growing = &from_start;
     Tree *other   = &from_goal;
 
-    std::vector<std::pair<int, int>> joins;  // node in from_start, node in from_goal
-    int                              first_join_iteration = -1;
+    int joined_start = -1;
+    int joined_goal  = -1;
 
     for (int iteration = 0; iteration < settings_.max_iterations; ++iteration) {
         if (secondsSince(started_) > std::min(settings_.time_budget_s, budget_)) {
-            break;
-        }
-        if (first_join_iteration >= 0 && iteration - first_join_iteration >= settings_.refine_iterations) {
             break;
         }
 
@@ -58,34 +54,24 @@ bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &go
         if (added >= 0) {
             const int reached = connect(*other, (*growing)[added].joints);
             if (reached >= 0) {
-                joins.push_back(growing == &from_start ? std::make_pair(added, reached)
-                                                       : std::make_pair(reached, added));
-                if (first_join_iteration < 0) {
-                    first_join_iteration = iteration;
-                }
+                joined_start = growing == &from_start ? added : reached;
+                joined_goal  = growing == &from_start ? reached : added;
+                break;
             }
         }
         std::swap(growing, other);
     }
 
-    if (joins.empty()) {
+    if (joined_start < 0) {
         return false;
     }
 
-    size_t best = 0;
-    for (size_t k = 1; k < joins.size(); ++k) {
-        const double cost      = from_start[joins[k].first].cost + from_goal[joins[k].second].cost;
-        const double best_cost = from_start[joins[best].first].cost + from_goal[joins[best].second].cost;
-        if (cost < best_cost) {
-            best = k;
-        }
-    }
-
-    for (int node = joins[best].first; node >= 0; node = from_start[node].parent) {
+    for (int node = joined_start; node >= 0; node = from_start[node].parent) {
         corners.push_back(from_start[node].joints);
     }
     std::reverse(corners.begin(), corners.end());
-    for (int node = from_goal[joins[best].second].parent; node >= 0; node = from_goal[node].parent) {
+    // The joined node holds the same joints on both sides, so the goal tree starts at its parent.
+    for (int node = from_goal[joined_goal].parent; node >= 0; node = from_goal[node].parent) {
         corners.push_back(from_goal[node].joints);
     }
 
@@ -94,7 +80,7 @@ bool BiRrtStar::plan(const kine::JointAngles &start, const kine::JointAngles &go
 }
 
 // Checks the inside of the edge coarse to fine, so a blocked edge is usually found early. The ends are not checked.
-bool BiRrtStar::edgeClear(const kine::JointAngles &a, const kine::JointAngles &b) {
+bool BiRrt::edgeClear(const kine::JointAngles &a, const kine::JointAngles &b) {
     double largest_step = 0.0;
     for (int j = 0; j < kine::JOINT_COUNT; ++j) {
         largest_step = std::max(largest_step, std::fabs(b[j] - a[j]));
@@ -116,7 +102,7 @@ bool BiRrtStar::edgeClear(const kine::JointAngles &a, const kine::JointAngles &b
     return true;
 }
 
-kine::JointAngles BiRrtStar::randomJoints() {
+kine::JointAngles BiRrt::randomJoints() {
     std::uniform_real_distribution<double> unit(0.0, 1.0);
     const kine::ArmModel                  &model = checker_.model();
     kine::JointAngles                      joints;
@@ -126,7 +112,7 @@ kine::JointAngles BiRrtStar::randomJoints() {
     return joints;
 }
 
-int BiRrtStar::nearest(const Tree &tree, const kine::JointAngles &target, double &distance) const {
+int BiRrt::nearest(const Tree &tree, const kine::JointAngles &target, double &distance) const {
     int closest = 0;
     distance    = std::numeric_limits<double>::max();
     for (size_t i = 0; i < tree.size(); ++i) {
@@ -139,8 +125,8 @@ int BiRrtStar::nearest(const Tree &tree, const kine::JointAngles &target, double
     return closest;
 }
 
-// Adds one node towards `target`, attached to the cheapest clear neighbour, and rewires the neighbours through it.
-int BiRrtStar::extend(Tree &tree, const kine::JointAngles &target) {
+// Adds one node towards `target`, attached to the nearest node already in the tree.
+int BiRrt::extend(Tree &tree, const kine::JointAngles &target) {
     double    distance = 0.0;
     const int closest  = nearest(tree, target, distance);
     if (distance < kSameJoints) {
@@ -150,57 +136,19 @@ int BiRrtStar::extend(Tree &tree, const kine::JointAngles &target) {
     const kine::JointAngles joints = distance <= settings_.extend_step
                                              ? target
                                              : interpolate(tree[closest].joints, target, settings_.extend_step / distance);
-    if (checker_.check(joints) != Verdict::CLEAR) {
-        return -1;
-    }
-
-    const double node_count = static_cast<double>(tree.size() + 1);
-    const double radius     = std::min(settings_.extend_step,
-                                       settings_.rewire_gamma
-                                               * std::pow(std::log(node_count) / node_count, 1.0 / kine::JOINT_COUNT));
-
-    std::vector<std::pair<double, int>> neighbours;  // cost through the neighbour, neighbour
-    for (size_t i = 0; i < tree.size(); ++i) {
-        const double d = jointDistance(weights_, tree[i].joints, joints);
-        if (d <= radius || static_cast<int>(i) == closest) {
-            neighbours.emplace_back(tree[i].cost + d, static_cast<int>(i));
-        }
-    }
-    std::sort(neighbours.begin(), neighbours.end());
-
-    int parent = -1;
-    for (const std::pair<double, int> &neighbour : neighbours) {
-        if (edgeClear(tree[neighbour.second].joints, joints)) {
-            parent = neighbour.second;
-            break;
-        }
-    }
-    if (parent < 0) {
+    if (checker_.check(joints) != Verdict::CLEAR || !edgeClear(tree[closest].joints, joints)) {
         return -1;
     }
 
     const int added = static_cast<int>(tree.size());
     tree.emplace_back();
     tree[added].joints = joints;
-    tree[added].parent = parent;
-    tree[added].cost   = tree[parent].cost + jointDistance(weights_, tree[parent].joints, joints);
-    tree[parent].children.push_back(added);
-
-    for (const std::pair<double, int> &neighbour : neighbours) {
-        const int node = neighbour.second;
-        if (node == parent) {
-            continue;
-        }
-        const double through_added = tree[added].cost + jointDistance(weights_, joints, tree[node].joints);
-        if (through_added + kSameJoints < tree[node].cost && edgeClear(joints, tree[node].joints)) {
-            reparent(tree, node, added, through_added);
-        }
-    }
+    tree[added].parent = closest;
     return added;
 }
 
 // Extends repeatedly towards `target` until it is reached or blocked.
-int BiRrtStar::connect(Tree &tree, const kine::JointAngles &target) {
+int BiRrt::connect(Tree &tree, const kine::JointAngles &target) {
     for (;;) {
         double    distance = 0.0;
         const int closest  = nearest(tree, target, distance);
@@ -213,23 +161,7 @@ int BiRrtStar::connect(Tree &tree, const kine::JointAngles &target) {
     }
 }
 
-void BiRrtStar::reparent(Tree &tree, int node, int new_parent, double new_cost) {
-    std::vector<int> &siblings = tree[tree[node].parent].children;
-    siblings.erase(std::remove(siblings.begin(), siblings.end(), node), siblings.end());
-    tree[node].parent = new_parent;
-    tree[new_parent].children.push_back(node);
-
-    const double     change = new_cost - tree[node].cost;
-    std::vector<int> pending(1, node);
-    while (!pending.empty()) {
-        const int current = pending.back();
-        pending.pop_back();
-        tree[current].cost += change;
-        pending.insert(pending.end(), tree[current].children.begin(), tree[current].children.end());
-    }
-}
-
-void BiRrtStar::shortcut(JointPath &corners) {
+void BiRrt::shortcut(JointPath &corners) {
     for (int attempt = 0; attempt < settings_.shortcut_attempts && corners.size() > 2; ++attempt) {
         if (secondsSince(started_) > budget_) {
             break;

@@ -36,8 +36,9 @@ int main(int argc, char **argv) {
     }
 
     cloud::CloudNode node(config, *pipeline);
-    LOG_INFO("[cloud] ready on %s: crop radius %.3f m, %ld^3 voxels of %.1f mm", config.action_collect.c_str(),
-             config.crop_radius, pipeline->grid().size(), config.voxel_size * 1000.0);
+    LOG_INFO("[cloud] ready on %s: crop radius %.3f m (reach %.3f + margin %.3f), voxels of %.1f mm",
+             config.action_collect.c_str(), config.crop_radius, config.candidate_reach, config.crop_margin,
+             config.voxel_size * 1000.0);
 
     ROS_ASYNC_SPIN(2)
     ROS_WAIT_FOR_SHUTDOWN()

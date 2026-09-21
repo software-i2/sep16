@@ -37,6 +37,7 @@ struct OutlierFilterSettings {
 struct OccupancySettings {
     int    min_points_per_voxel   = 0;
     double free_space_tolerance   = 0.0;
+    double max_ray_stretch        = 1.0;
 };
 
 struct HandleRegionSettings {
@@ -81,6 +82,7 @@ struct ConsensusSettings {
 struct CloudConfig {
     std::string base_frame;
     std::string camera_frame;
+    std::string anchor_frame;
     CameraModel camera;
     Switches    switches;
 
@@ -91,7 +93,8 @@ struct CloudConfig {
     double frame_timeout_s   = 0.0;
     double voxel_size        = 0.0;
     double candidate_reach   = 0.0;  // how far the jaw tips can get from the arm base origin
-    double crop_radius       = 0.0;  // candidate_reach; obstacles further out cannot touch the arm
+    double crop_radius       = 0.0;  // candidate_reach plus crop_margin: how far the arm could reach after a park move
+    double crop_margin       = 0.0;
     int    approach_column   = 0;
     int    bar_column        = 0;
 

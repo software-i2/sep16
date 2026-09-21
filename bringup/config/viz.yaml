@@ -7,7 +7,6 @@ path_draw_step_deg: 2.0                  # planned path drawn at this joint spac
 grasp_pose_size_m: 0.006                 # diameter of the dots marking grasp poses
 chosen_grasp_length_m: 0.05              # length of the arrow and bar marking the chosen grasp
 line_width_m: 0.003
-floor_size_m: 1.0                        # side of the square drawn at the safety floor
 
 colours:
   arm_body: [0.2, 0.6, 1.0, 0.35]

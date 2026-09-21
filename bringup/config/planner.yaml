@@ -1,7 +1,13 @@
 # Copyright by BeeX [2026]
 # Grasp and path planning. Loaded into /planner. Lengths m, angles deg, times s.
 
-safety_floor_z_m: -1.0e-6                # no part of the arm may go below this height in arm_base
+safety_floor_z_m: -1.0e-6                # no part of the arm may go below this height in arm_base,
+                                         # and only where it is under the vehicle
+vehicle_footprint_m:                     # the hull's outline in arm_base, a plate with no thickness:
+  min_x: -0.80                           # 0.90 long, the nose 0.10 ahead of the arm mount
+  max_x: 0.10
+  min_y: -0.40                           # 0.80 wide, the arm on the centreline
+  max_y: 0.40                            # past this outline nothing is overhead and the arm is free
 link_radius_m: 0.020                     # collision radius around the upper arm, forearm, wrist tube and palm
 link_sample_step_m: 0.002                # spacing of collision samples along each link
 blade_sample_step_m: 0.0025              # spacing of collision samples over the jaw blades
@@ -16,12 +22,10 @@ joint_cost_weights: {base: 1.0, shoulder: 1.0, elbow: 1.0, wrist: 1.0}  # cost =
 paths_to_compare: 1                      # plan paths to this many of the cheapest-looking grasps, keep the cheapest path
 max_planning_time_s: 10.0                # stop trying more grasps after this
 
-rrt:                                     # bi-directional RRT*
+rrt:                                     # bi-directional RRT-Connect, stopping at the first join
   max_iterations: 3000
-  refine_iterations: 300                 # keep improving this many iterations after the first path
   time_budget_s: 0.2                     # per grasp
   extend_step_deg: 57.2958               # longest single tree extension
-  rewire_gamma: 1.0                      # scales the rewiring radius
   edge_check_step_deg: 1.0               # collision checks along every edge, no joint moves further between checks
-  shortcut_attempts: 20
+  shortcut_attempts: 20                  # path quality comes from here, not from the search
   random_seed: 1                         # fixed so the same scene gives the same path

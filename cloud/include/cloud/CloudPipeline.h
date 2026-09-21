@@ -21,6 +21,7 @@ struct CloudOutput {
     std::vector<GraspPose> candidates;
     std::vector<uint32_t>  obstacle_cells;
     std::vector<uint32_t>  handle_cells;
+    VoxelGrid              grid;  // the box the cells are indexed in, fitted to this scene
     std::string            summary;
 };
 
@@ -33,8 +34,6 @@ public:
     // Frames oldest first.
     CloudOutput process(const std::vector<CameraFrame> &frames) const;
 
-    const VoxelGrid &grid() const { return grid_; }
-
 private:
     struct FrameResult {
         std::vector<GraspPose> poses;       // arm base frame
@@ -44,10 +43,11 @@ private:
         std::vector<uint32_t>  occupied;
     };
 
-    FrameResult processFrame(const CameraFrame &frame) const;
+    // The grid is fitted to the collected scene, so it only exists once the frames are in hand.
+    VoxelGrid   fitGrid(const std::vector<CameraFrame> &frames) const;
+    FrameResult processFrame(const CameraFrame &frame, const VoxelGrid &grid, bool want_occupancy) const;
 
     CloudConfig                         config_;
-    VoxelGrid                           grid_;
     std::unique_ptr<HandleClassifier>   classifier_;
     std::unique_ptr<CandidateAveraging> averaging_;
 };

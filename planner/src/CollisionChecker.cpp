@@ -7,11 +7,11 @@
 
 namespace planner {
 
-CollisionChecker::CollisionChecker(const kine::ArmBody &body, const ObstacleGrid &grid, double safety_floor_z,
-                                   double link_sample_step, size_t blade_stride)
+CollisionChecker::CollisionChecker(const kine::ArmBody &body, const ObstacleGrid &grid,
+                                   const kine::FloorGuard &floor_guard, double link_sample_step, size_t blade_stride)
         : body_(body),
           grid_(grid),
-          safety_floor_z_(safety_floor_z),
+          floor_guard_(floor_guard),
           link_sample_step_(link_sample_step),
           blade_stride_(blade_stride) {}
 
@@ -21,7 +21,7 @@ Verdict CollisionChecker::check(const kine::JointAngles &joints) {
     }
 
     body_.pose(joints, pose_, blade_stride_);
-    if (kine::lowestPoint(pose_) < safety_floor_z_) {
+    if (kine::breachesFloor(pose_, floor_guard_)) {
         return Verdict::FLOOR;
     }
 

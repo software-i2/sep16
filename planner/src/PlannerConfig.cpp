@@ -14,7 +14,7 @@ PlannerConfig loadPlannerConfig(params::Params &planner, params::Params &arm, pa
         c.joint_names[j] = arm.text(std::string("joint_names/") + kine::JOINT_KEYS[j]);
     }
 
-    c.safety_floor_z         = planner.number("safety_floor_z_m");
+    c.floor_guard            = kine::readFloorGuard(planner);
     c.link_radius            = planner.number("link_radius_m");
     c.link_sample_step       = planner.number("link_sample_step_m");
     c.blade_sample_step      = planner.number("blade_sample_step_m");
@@ -32,10 +32,8 @@ PlannerConfig loadPlannerConfig(params::Params &planner, params::Params &arm, pa
     c.max_planning_time_s = planner.number("max_planning_time_s");
 
     c.rrt.max_iterations    = planner.whole("rrt/max_iterations");
-    c.rrt.refine_iterations = planner.whole("rrt/refine_iterations");
     c.rrt.time_budget_s     = planner.number("rrt/time_budget_s");
     c.rrt.extend_step       = kine::degToRad(planner.number("rrt/extend_step_deg"));
-    c.rrt.rewire_gamma      = planner.number("rrt/rewire_gamma");
     c.rrt.edge_check_step   = kine::degToRad(planner.number("rrt/edge_check_step_deg"));
     c.rrt.shortcut_attempts = planner.whole("rrt/shortcut_attempts");
     c.rrt.random_seed       = planner.whole("rrt/random_seed");
@@ -49,10 +47,8 @@ PlannerConfig loadPlannerConfig(params::Params &planner, params::Params &arm, pa
     planner.require(c.paths_to_compare > 0, "paths_to_compare", "positive");
     planner.require(c.max_planning_time_s > 0.0, "max_planning_time_s", "positive");
     planner.require(c.rrt.max_iterations > 0, "rrt/max_iterations", "positive");
-    planner.require(c.rrt.refine_iterations >= 0, "rrt/refine_iterations", "zero or more");
     planner.require(c.rrt.time_budget_s > 0.0, "rrt/time_budget_s", "positive");
     planner.require(c.rrt.extend_step > 0.0, "rrt/extend_step_deg", "positive");
-    planner.require(c.rrt.rewire_gamma > 0.0, "rrt/rewire_gamma", "positive");
     planner.require(c.rrt.edge_check_step > 0.0, "rrt/edge_check_step_deg", "positive");
     planner.require(c.rrt.shortcut_attempts >= 0, "rrt/shortcut_attempts", "zero or more");
     planner.require(c.rrt.random_seed >= 0, "rrt/random_seed", "zero or more");

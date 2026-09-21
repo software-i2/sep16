@@ -26,8 +26,8 @@ VizConfig loadVizConfig(params::Params &viz, params::Params &arm, params::Params
     for (int j = 0; j < kine::JOINT_COUNT; ++j) {
         c.joint_names[j] = arm.text(std::string("joint_names/") + kine::JOINT_KEYS[j]);
     }
-    c.link_radius    = planner.number("link_radius_m");
-    c.safety_floor_z = planner.number("safety_floor_z_m");
+    c.link_radius = planner.number("link_radius_m");
+    c.floor_guard = kine::readFloorGuard(planner);
 
     c.arm_body_rate_hz    = viz.number("arm_body_rate_hz");
     c.blade_draw_step     = viz.number("blade_draw_step_m");
@@ -35,7 +35,6 @@ VizConfig loadVizConfig(params::Params &viz, params::Params &arm, params::Params
     c.grasp_pose_size     = viz.number("grasp_pose_size_m");
     c.chosen_grasp_length = viz.number("chosen_grasp_length_m");
     c.line_width          = viz.number("line_width_m");
-    c.floor_size          = viz.number("floor_size_m");
     viz.require(c.arm_body_rate_hz > 0.0, "arm_body_rate_hz", "positive");
     viz.require(c.blade_draw_step > 0.0, "blade_draw_step_m", "positive");
     viz.require(c.path_draw_step > 0.0, "path_draw_step_deg", "positive");

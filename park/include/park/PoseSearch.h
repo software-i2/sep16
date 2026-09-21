@@ -49,12 +49,13 @@ struct SearchBox {
 };
 
 // Coarse sweep then a fine pass around the best cells, scored by how many grasps the reach
-// table admits. The table models reach, the base window, the jaw roll and the floor; it does
-// not model obstacles, so a pose it likes still has to survive the planner.
+// table admits. The table models reach, the base window and the jaw roll; it models neither
+// obstacles nor the vehicle, which are axis-dependent and the table is not, so a pose it likes
+// still has to survive the planner.
 class PoseSearch {
 public:
     PoseSearch(const kine::ReachTable &table, const SearchBox &box, const Eigen::Isometry3d &body_to_arm,
-               const Eigen::Vector3d &camera_in_body, double floor_z);
+               const Eigen::Vector3d &camera_in_body);
 
     // Whether one candidate is reachable with the arm base placed by `pose`.
     bool admits(const Grasp &grasp, const Pose &pose) const;
@@ -72,7 +73,6 @@ private:
     SearchBox               box_;
     Eigen::Isometry3d       body_to_arm_;
     Eigen::Vector3d         camera_in_body_;
-    double                  floor_z_;
 };
 
 }  // namespace park

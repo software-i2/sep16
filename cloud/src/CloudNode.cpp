@@ -66,7 +66,17 @@ bool CloudNode::toFrame(const sensor_msgs::PointCloud2 &cloud, const geometry_ms
 
     geometry_msgs::TransformStamped transform;
     try {
-        transform = tf_buffer_.lookupTransform(config_.base_frame, config_.camera_frame, cloud.header.stamp,
+        // A bag replays what one fixed viewpoint saw. Reading it through camera_link would
+        // carry the scene along whenever the vehicle moves, so the anchor stands in for the
+        // place the camera was when the recording was made.
+        //
+        // Latest rather than the frame's own stamp. The anchor reaches the arm through the
+        // vehicle, which is a moving transform, and a replayed bag stamps its frames on the
+        // recording's clock, not this one; asking for that instant is asking for a time this
+        // run never had. Frames are only collected while the vehicle is holding station, so
+        // the newest transform is the one that was true when the frame was taken.
+        const std::string &seen_from = config_.anchor_frame.empty() ? config_.camera_frame : config_.anchor_frame;
+        transform = tf_buffer_.lookupTransform(config_.base_frame, seen_from, ros::Time(0),
                                                ros::Duration(config_.transform_wait_s));
     } catch (const tf2::TransformException &e) {
         why = std::string("no transform from the camera to the arm base: ") + e.what();
@@ -215,15 +225,15 @@ msgs::CloudResult CloudNode::toMessage(const CloudOutput &output, size_t frames_
         msg.candidates.push_back(toPose(pose));
     }
 
-    const VoxelGrid &grid          = pipeline_.grid();
+    const VoxelGrid &grid          = output.grid;
     msg.obstacles.header           = msg.header;
     msg.obstacles.voxel_size_m     = grid.voxelSize();
     msg.obstacles.origin.x         = grid.origin().x();
     msg.obstacles.origin.y         = grid.origin().y();
     msg.obstacles.origin.z         = grid.origin().z();
-    msg.obstacles.size_x           = static_cast<uint32_t>(grid.size());
-    msg.obstacles.size_y           = static_cast<uint32_t>(grid.size());
-    msg.obstacles.size_z           = static_cast<uint32_t>(grid.size());
+    msg.obstacles.size_x           = static_cast<uint32_t>(grid.sizeX());
+    msg.obstacles.size_y           = static_cast<uint32_t>(grid.sizeY());
+    msg.obstacles.size_z           = static_cast<uint32_t>(grid.sizeZ());
     msg.obstacles.obstacle_cells   = output.obstacle_cells;
     msg.obstacles.handle_cells     = output.handle_cells;
     return msg;

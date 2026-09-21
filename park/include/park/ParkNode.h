@@ -76,6 +76,7 @@ private:
     ParkConfig                                      config_;
     kine::ReachTable                                table_;
     Eigen::Isometry3d                               body_to_arm_;
+    Eigen::Isometry3d                               body_to_camera_;
     std::unique_ptr<PoseSearch>                     search_;
     std::unique_ptr<kine::ArmBody>                  body_;
     actionlib::SimpleActionServer<msgs::ParkAction> server_;

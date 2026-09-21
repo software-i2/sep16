@@ -1,6 +1,6 @@
 // Copyright by BeeX [2026]
 
-#include <planner/BiRrtStar.h>
+#include <planner/BiRrt.h>
 #include <planner/CandidatePlanner.h>
 #include <planner/ObstacleGrid.h>
 
@@ -72,7 +72,7 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
         return result;
     }
     grid->setQueryToMap(base_to_map);
-    CollisionChecker checker(body_, *grid, config_.safety_floor_z, config_.link_sample_step);
+    CollisionChecker checker(body_, *grid, config_.floor_guard, config_.link_sample_step);
 
     const GraspSettings grasp{config_.grasp_point_from_mount, config_.max_approach_deviation,
                               config_.joint_cost_weights};
@@ -92,8 +92,8 @@ PlanOutcome CandidatePlanner::plan(const std::vector<Candidate> &candidates, con
     std::sort(goals.begin(), goals.end(),
               [](const GraspGoal &a, const GraspGoal &b) { return a.straight_cost < b.straight_cost; });
 
-    BiRrtStar rrt(checker, config_.rrt, config_.joint_cost_weights);
-    int       paths_found = 0;
+    BiRrt rrt(checker, config_.rrt, config_.joint_cost_weights);
+    int   paths_found = 0;
     for (const GraspGoal &goal : goals) {
         if (paths_found >= config_.paths_to_compare || remaining() < config_.rrt.time_budget_s) {
             break;

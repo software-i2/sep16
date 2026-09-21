@@ -4,6 +4,7 @@
 #include <kine/ForwardKinematics.h>
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace kine {
@@ -70,15 +71,74 @@ void ArmBody::pose(const JointAngles &joints, BodyPose &out, size_t blade_stride
     }
 }
 
-double lowestPoint(const BodyPose &body) {
-    double lowest = std::min(body.throat.z(), body.tip.z());
+namespace {
+
+constexpr double kParallel = 1e-12;
+
+bool insideGuard(const Eigen::Vector3d &point, const FloorGuard &guard) {
+    return point.z() < guard.floor_z && point.x() >= guard.min_x && point.x() <= guard.max_x
+           && point.y() >= guard.min_y && point.y() <= guard.max_y;
+}
+
+bool clipBetween(double from, double span, double lower, double upper, double &lo, double &hi) {
+    if (std::fabs(span) < kParallel) {
+        return from >= lower && from <= upper;
+    }
+    double enter = (lower - from) / span;
+    double leave = (upper - from) / span;
+    if (enter > leave) {
+        std::swap(enter, leave);
+    }
+    lo = std::max(lo, enter);
+    hi = std::min(hi, leave);
+    return lo <= hi;
+}
+
+// The guard has no top, so z is clipped on one side only.
+bool clipBelow(double from, double span, double upper, double &lo, double &hi) {
+    if (std::fabs(span) < kParallel) {
+        return from < upper;
+    }
+    const double crossing = (upper - from) / span;
+    if (span > 0.0) {
+        hi = std::min(hi, crossing);
+    } else {
+        lo = std::max(lo, crossing);
+    }
+    return lo <= hi;
+}
+
+// A link can cross the footprint with both ends outside it, so its ends are not enough.
+bool linkInsideGuard(const Segment &link, const FloorGuard &guard) {
+    const Eigen::Vector3d span = link.end - link.start;
+    double                lo   = 0.0;
+    double                hi   = 1.0;
+    if (!clipBetween(link.start.x(), span.x(), guard.min_x, guard.max_x, lo, hi)
+        || !clipBetween(link.start.y(), span.y(), guard.min_y, guard.max_y, lo, hi)
+        || !clipBelow(link.start.z(), span.z(), guard.floor_z, lo, hi)) {
+        return false;
+    }
+    // Grazing the hull over zero length is contact the flat floor let through too.
+    return lo < hi;
+}
+
+}  // namespace
+
+bool breachesFloor(const BodyPose &body, const FloorGuard &guard) {
+    if (insideGuard(body.throat, guard) || insideGuard(body.tip, guard)) {
+        return true;
+    }
     for (const Segment &link : body.links) {
-        lowest = std::min({lowest, link.start.z(), link.end.z()});
+        if (linkInsideGuard(link, guard)) {
+            return true;
+        }
     }
     for (const Eigen::Vector3d &point : body.blade_points) {
-        lowest = std::min(lowest, point.z());
+        if (insideGuard(point, guard)) {
+            return true;
+        }
     }
-    return lowest;
+    return false;
 }
 
 }  // namespace kine

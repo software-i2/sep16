@@ -12,9 +12,9 @@
 
 namespace cloud {
 
-// Sorted occupied cells from the points within crop_radius; a null `filter` keeps every point.
+// Sorted occupied cells from the points that fall inside the grid; a null `filter` keeps every point.
 std::vector<uint32_t> occupiedCells(const CameraFrame &frame, const CameraModel &camera, const VoxelGrid &grid,
-                                    double crop_radius, const DepthImage &depth, const OutlierFilter *filter,
+                                    const DepthImage &depth, const OutlierFilter *filter,
                                     const std::vector<uint8_t> &handle_region, const OccupancySettings &settings);
 
 // Cells occupied in at least `min_frames` of the frames, sorted. A frame votes for a cell when it saw any cell

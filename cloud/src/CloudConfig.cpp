@@ -3,6 +3,8 @@
 #include <cloud/CloudConfig.h>
 #include <kine/ReadConfig.h>
 
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace cloud {
@@ -55,6 +57,7 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     CloudConfig c;
     c.base_frame    = arm.text("base_frame");
     c.camera_frame  = camera.text("frame");
+    c.anchor_frame  = cloud.text("anchor_frame");
     c.camera.width  = camera.whole("intrinsics/width_px");
     c.camera.height = camera.whole("intrinsics/height_px");
     c.camera.fx     = camera.number("intrinsics/fx_px");
@@ -76,6 +79,7 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.frame_timeout_s   = cloud.number("frame_timeout_s");
     c.transform_wait_s  = cloud.number("transform_wait_s");
     c.voxel_size        = cloud.number("voxel_size_m");
+    c.crop_margin       = cloud.number("crop_margin_m");
     c.approach_column   = cloud.whole("pose_axes/approach_column");
     c.bar_column        = cloud.whole("pose_axes/bar_column");
 
@@ -86,6 +90,7 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     cloud.require(c.frame_timeout_s > 0.0, "frame_timeout_s", "positive");
     cloud.require(c.transform_wait_s >= 0.0, "transform_wait_s", "zero or more");
     cloud.require(c.voxel_size > 0.0, "voxel_size_m", "positive");
+    cloud.require(c.crop_margin >= 0.0, "crop_margin_m", "zero or more");
     cloud.require(c.approach_column >= 0 && c.approach_column <= 2, "pose_axes/approach_column", "0, 1 or 2");
     cloud.require(c.bar_column >= 0 && c.bar_column <= 2 && c.bar_column != c.approach_column,
                   "pose_axes/bar_column", "0, 1 or 2 and not the approach column");
@@ -98,6 +103,9 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
 
     c.occupancy.min_points_per_voxel = cloud.whole("occupancy/min_points_per_voxel");
     c.occupancy.free_space_tolerance = cloud.number("occupancy/free_space_tolerance_m");
+    const double max_tilt            = cloud.number("occupancy/max_surface_tilt_deg");
+    cloud.require(max_tilt >= 0.0 && max_tilt < 90.0, "occupancy/max_surface_tilt_deg", "between 0 and 90");
+    c.occupancy.max_ray_stretch = 1.0 / std::max(std::cos(max_tilt * M_PI / 180.0), 1e-3);
     c.handle_region.radius           = cloud.number("handle_region/radius_m");
     c.handle_region.max_pose_gap     = cloud.number("handle_region/max_pose_gap_m");
     c.corridor.length                = cloud.number("corridor_carving/length_m");
@@ -121,7 +129,9 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     try {
         const kine::ArmModel model(kine::readArmConfig(arm, jaws));
         c.candidate_reach = model.reachFromBase(model.tipDistance());
-        c.crop_radius     = c.candidate_reach;
+        // The snapshot is planned against from wherever the park search sends the arm, so it has to
+        // hold what the arm could reach from there, not only from where it stood when the frame was taken.
+        c.crop_radius     = c.candidate_reach + c.crop_margin;
     } catch (const std::invalid_argument &e) {
         arm.require(false, "links", std::string("a usable arm (") + e.what() + ")");
     }

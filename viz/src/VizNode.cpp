@@ -76,9 +76,12 @@ void VizNode::onJointStates(const sensor_msgs::JointState::ConstPtr &msg) {
 
 void VizNode::drawFloor() {
     visualization_msgs::Marker floor = marker("floor", visualization_msgs::Marker::TRIANGLE_LIST, config_.floor_colour);
-    const double               half  = config_.floor_size / 2.0;
-    const double               z     = config_.safety_floor_z;
-    const Eigen::Vector3d corners[4] = {{-half, -half, z}, {half, -half, z}, {half, half, z}, {-half, half, z}};
+    const kine::FloorGuard    &guard = config_.floor_guard;
+    const double               z     = guard.floor_z;
+    const Eigen::Vector3d      corners[4] = {{guard.min_x, guard.min_y, z},
+                                             {guard.max_x, guard.min_y, z},
+                                             {guard.max_x, guard.max_y, z},
+                                             {guard.min_x, guard.max_y, z}};
     for (const int corner : {0, 1, 2, 0, 2, 3}) {
         floor.points.push_back(toPoint(corners[corner]));
     }

@@ -17,12 +17,8 @@ Eigen::Vector3d turn(const Eigen::Vector3d &v, double cos_yaw, double sin_yaw) {
 }  // namespace
 
 PoseSearch::PoseSearch(const kine::ReachTable &table, const SearchBox &box, const Eigen::Isometry3d &body_to_arm,
-                       const Eigen::Vector3d &camera_in_body, double floor_z)
-        : table_(table),
-          box_(box),
-          body_to_arm_(body_to_arm),
-          camera_in_body_(camera_in_body),
-          floor_z_(floor_z) {}
+                       const Eigen::Vector3d &camera_in_body)
+        : table_(table), box_(box), body_to_arm_(body_to_arm), camera_in_body_(camera_in_body) {}
 
 bool PoseSearch::admits(const Grasp &grasp, const Pose &pose) const {
     const double cos_yaw = std::cos(-pose.yaw);
@@ -62,7 +58,7 @@ bool PoseSearch::admits(const Grasp &grasp, const Pose &pose) const {
         }
         for (int b = 0; b < kine::K_REACH_BRANCHES; ++b) {
             const kine::ReachBranch &branch = cell->branch[b];
-            if (!branch.reached() || branch.lowest_z < floor_z_) {
+            if (!branch.reached()) {
                 continue;
             }
             const Eigen::Vector3d approach = kine::approachDirection(branch.approach, base_angle);

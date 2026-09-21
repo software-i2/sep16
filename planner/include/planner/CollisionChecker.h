@@ -10,12 +10,12 @@ namespace planner {
 
 enum class Verdict { CLEAR, JOINT_LIMIT, FLOOR, OBSTACLE };
 
-// Whether one posture is allowed: inside the joint limits, above the safety floor, clear of obstacles.
+// Whether one posture is allowed: inside the joint limits, out of the vehicle, clear of obstacles.
 class CollisionChecker {
 public:
     // `blade_stride` above 1 tests only every nth jaw blade sample, which can miss a contact
     // but never invent one. For screening many hypothetical poses, not for admitting a grasp.
-    CollisionChecker(const kine::ArmBody &body, const ObstacleGrid &grid, double safety_floor_z,
+    CollisionChecker(const kine::ArmBody &body, const ObstacleGrid &grid, const kine::FloorGuard &floor_guard,
                      double link_sample_step, size_t blade_stride = 1);
 
     Verdict check(const kine::JointAngles &joints);
@@ -25,7 +25,7 @@ public:
 private:
     const kine::ArmBody &body_;
     const ObstacleGrid  &grid_;
-    double               safety_floor_z_;
+    kine::FloorGuard     floor_guard_;
     double               link_sample_step_;
     size_t               blade_stride_;
     kine::BodyPose       pose_;

@@ -49,8 +49,18 @@ private:
     std::vector<Eigen::Vector3d> blade_local_;
 };
 
-// Lowest height any part of the body reaches.
-double lowestPoint(const BodyPose &body);
+// The vehicle's underside, as an x/y footprint in arm_base. The arm hangs inverted, so arm_base
+// +z points down: the hull is everything shallower than `floor_z` inside the footprint, and past
+// the footprint edge there is no vehicle overhead to stop the arm rising.
+struct FloorGuard {
+    double min_x   = 0.0;
+    double max_x   = 0.0;
+    double min_y   = 0.0;
+    double max_y   = 0.0;
+    double floor_z = 0.0;
+};
+
+bool breachesFloor(const BodyPose &body, const FloorGuard &guard);
 
 }  // namespace kine
 

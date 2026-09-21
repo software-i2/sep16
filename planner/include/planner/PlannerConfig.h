@@ -3,6 +3,7 @@
 #ifndef PLANNER_PLANNERCONFIG_H
 #define PLANNER_PLANNERCONFIG_H
 
+#include <kine/ArmBody.h>
 #include <kine/ArmModel.h>
 #include <params/Params.h>
 
@@ -14,10 +15,8 @@ namespace planner {
 // Angles in radians.
 struct RrtSettings {
     int    max_iterations    = 0;
-    int    refine_iterations = 0;
     double time_budget_s     = 0.0;
     double extend_step       = 0.0;
-    double rewire_gamma      = 0.0;
     double edge_check_step   = 0.0;
     int    shortcut_attempts = 0;
     int    random_seed       = 0;
@@ -29,7 +28,7 @@ struct PlannerConfig {
     std::string     base_frame;
     std::array<std::string, kine::JOINT_COUNT> joint_names;
 
-    double            safety_floor_z         = 0.0;
+    kine::FloorGuard  floor_guard;
     double            link_radius            = 0.0;
     double            link_sample_step       = 0.0;
     double            blade_sample_step      = 0.0;

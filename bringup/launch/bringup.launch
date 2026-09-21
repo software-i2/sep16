@@ -14,7 +14,7 @@
     <arg name="handle_carving" default="true" doc="let the jaw blades close in on the handle surface"/>
     <arg name="corridor_carving" default="true" doc="treat the approach corridor in front of each handle pose as handle"/>
     <arg name="candidate_averaging" default="true" doc="keep only candidates the collected frames agree on"/>
-    <arg name="obstacle_averaging" default="true" doc="obstacle voxels must be seen in several collected frames"/>
+    <arg name="obstacle_averaging" default="false" doc="obstacle voxels must be seen in several collected frames; costs a full occupancy pass per frame and thins sparse surfaces"/>
 
     <arg name="config" default="$(find bringup)/config"/>
 

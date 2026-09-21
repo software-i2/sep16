@@ -9,6 +9,12 @@ body_frame: vehicle_base                 # root of the robot description, the fr
 locked_frame: world_locked               # world frame the vehicle moves in, fixed when the target is locked
 scene_frame: scene_locked                # where the arm base stood when the scene was latched; the snapshot lives here
 
+# A replayed bag publishes its cloud in camera_link, which rides the vehicle, so the mine
+# would follow the vehicle around. This frame is where the camera stood when the bag was
+# recorded, fixed in the world. Point cloud.yaml's anchor_frame at it and the scene stays put
+# while the vehicle moves relative to it, which is the whole point of a soak.
+camera_anchor_frame: camera_anchor
+
 # arm_base in body_frame, ROS vehicle convention: +x forward, +y port, +z up.
 #
 # UNMEASURED. Measure the displacement from the vehicle origin to the arm shoulder base and
@@ -17,8 +23,9 @@ scene_frame: scene_locked                # where the arm base stood when the sce
 arm_mount_position_m: [0.0, 0.0, 0.0]
 
 # The arm is mounted inverted: rolled 180 deg about x, so arm_base +z points down in the
-# vehicle. Consequence: planner.yaml's safety_floor_z_m is a plane in arm_base, so it now
-# guards the vehicle's own hull, not the seabed.
+# vehicle. Consequence: planner.yaml's safety_floor_z_m guards the vehicle's own hull, not the
+# seabed, and it applies only inside planner.yaml's vehicle_footprint_m. Change the hull size
+# there, not here.
 arm_mount_rpy_deg: [180.0, 0.0, 0.0]
 
 search:                                  # bounded so the pose search cannot explode
