@@ -33,6 +33,8 @@ public:
 private:
     void onJointStates(const sensor_msgs::JointState::ConstPtr &msg);
     void onCloudResult(const msgs::CloudResult::ConstPtr &msg);
+    void drawCloud(const msgs::CloudResult &msg, const CloudView &view, ros::Publisher &poses_pub,
+                   ros::Publisher &map_pub);
     void onPlanResult(const msgs::GraspPlan::ConstPtr &msg);
 
     bool modelJoints(const std::vector<std::string> &names, const std::vector<double> &positions,
@@ -52,6 +54,8 @@ private:
     DECLARE_ROS_PUBLISHER(pub_floor_, visualization_msgs::Marker)
     DECLARE_ROS_PUBLISHER(pub_obstacle_map_, sensor_msgs::PointCloud2)
     DECLARE_ROS_PUBLISHER(pub_grasp_poses_, visualization_msgs::Marker)
+    DECLARE_ROS_PUBLISHER(pub_reprocess_map_, sensor_msgs::PointCloud2)
+    DECLARE_ROS_PUBLISHER(pub_reprocess_poses_, visualization_msgs::Marker)
     DECLARE_ROS_PUBLISHER(pub_chosen_grasp_, visualization_msgs::MarkerArray)
     DECLARE_ROS_PUBLISHER(pub_planned_path_, visualization_msgs::Marker)
 };

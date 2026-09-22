@@ -95,10 +95,8 @@ void ExecutorNode::finish(uint8_t outcome, const std::string &message) {
     result.outcome = outcome;
     result.message = message;
     if (outcome == msgs::ExecuteResult::REACHED) {
-        LOG_INFO("[executor] %s", message.c_str());
         server_.setSucceeded(result, message);
     } else if (outcome == msgs::ExecuteResult::STOPPED) {
-        LOG_WARN("[executor] %s", message.c_str());
         server_.setPreempted(result, message);
     } else {
         LOG_ERROR("[executor] %s", message.c_str());

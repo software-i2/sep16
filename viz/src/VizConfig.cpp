@@ -16,6 +16,17 @@ std_msgs::ColorRGBA readColour(params::Params &viz, const std::string &name) {
     return colour;
 }
 
+CloudView readView(params::Params &viz, params::Params &topics, const std::string &name,
+                   const std::string &poses_key, const std::string &map_key) {
+    CloudView view;
+    view.grasp_pose         = readColour(viz, name + "/grasp_pose");
+    view.obstacle           = readColour(viz, name + "/obstacle");
+    view.handle_cell        = readColour(viz, name + "/handle_cell");
+    view.topic_grasp_poses  = topics.text(poses_key);
+    view.topic_obstacle_map = topics.text(map_key);
+    return view;
+}
+
 }  // namespace
 
 VizConfig loadVizConfig(params::Params &viz, params::Params &arm, params::Params &jaws, params::Params &planner,
@@ -39,11 +50,10 @@ VizConfig loadVizConfig(params::Params &viz, params::Params &arm, params::Params
     viz.require(c.blade_draw_step > 0.0, "blade_draw_step_m", "positive");
     viz.require(c.path_draw_step > 0.0, "path_draw_step_deg", "positive");
 
+    c.initial   = readView(viz, topics, "initial", "viz_grasp_poses", "viz_obstacle_map");
+    c.reprocess = readView(viz, topics, "reprocess", "viz_reprocess_grasp_poses", "viz_reprocess_obstacle_map");
+
     c.arm_body_colour     = readColour(viz, "arm_body");
-    c.handle_colour       = readColour(viz, "handle");
-    c.rope_colour         = readColour(viz, "rope");
-    c.obstacle_colour     = readColour(viz, "obstacle");
-    c.handle_cell_colour  = readColour(viz, "handle_cell");
     c.chosen_grasp_colour = readColour(viz, "chosen_grasp");
     c.planned_path_colour = readColour(viz, "planned_path");
     c.floor_colour        = readColour(viz, "floor");
@@ -53,8 +63,6 @@ VizConfig loadVizConfig(params::Params &viz, params::Params &arm, params::Params
     c.topic_plan_result  = topics.text("planner_result");
     c.topic_arm_body     = topics.text("viz_arm_body");
     c.topic_floor        = topics.text("viz_floor");
-    c.topic_obstacle_map = topics.text("viz_obstacle_map");
-    c.topic_grasp_poses  = topics.text("viz_grasp_poses");
     c.topic_chosen_grasp = topics.text("viz_chosen_grasp");
     c.topic_planned_path = topics.text("viz_planned_path");
     return c;

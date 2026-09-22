@@ -13,7 +13,7 @@
 namespace cloud {
 
 CloudPipeline::CloudPipeline(const CloudConfig &config)
-        : config_(config), classifier_(makeHandleClassifier(config)), averaging_(makeCandidateAveraging(config)) {}
+        : config_(config), averaging_(makeCandidateAveraging(config)) {}
 
 VoxelGrid CloudPipeline::fitGrid(const std::vector<CameraFrame> &frames) const {
     const double    crop_radius2 = config_.crop_radius * config_.crop_radius;
@@ -55,15 +55,9 @@ CloudPipeline::FrameResult CloudPipeline::processFrame(const CameraFrame &frame,
         result.poses.push_back(transformPose(frame.camera_to_base, pose));
     }
 
-    result.is_handle = config_.switches.handle_classifier ? classifier_->isHandle(frame.poses)
-                                                          : std::vector<bool>(frame.poses.size(), true);
-    for (size_t i = 0; i < result.poses.size(); ++i) {
-        if (!result.is_handle[i]) {
-            continue;
-        }
-        result.handle_poses.push_back(result.poses[i]);
-        if (result.poses[i].point.norm() <= config_.candidate_reach) {
-            result.candidates.push_back(result.poses[i]);
+    for (const GraspPose &pose : result.poses) {
+        if (pose.point.norm() <= config_.candidate_reach) {
+            result.candidates.push_back(pose);
         }
     }
     if (!want_occupancy) {
@@ -98,10 +92,7 @@ CloudOutput CloudPipeline::process(const std::vector<CameraFrame> &frames) const
         results.push_back(processFrame(frames[i], grid, want_occupancy));
     }
     const FrameResult &newest = results.back();
-
-    for (size_t i = 0; i < newest.poses.size(); ++i) {
-        (newest.is_handle[i] ? output.handle_poses : output.rope_poses).push_back(newest.poses[i]);
-    }
+    output.poses              = newest.poses;
 
     std::string averaging_summary = "newest frame only";
     if (config_.switches.candidate_averaging) {
@@ -117,13 +108,13 @@ CloudOutput CloudPipeline::process(const std::vector<CameraFrame> &frames) const
     }
 
     std::vector<uint32_t>  occupied   = newest.occupied;
-    std::vector<GraspPose> carve_from = newest.handle_poses;
+    std::vector<GraspPose> carve_from = newest.poses;
     if (config_.switches.obstacle_averaging) {
         std::vector<std::vector<uint32_t>> per_frame;
         carve_from.clear();
         for (const FrameResult &result : results) {
             per_frame.push_back(result.occupied);
-            carve_from.insert(carve_from.end(), result.handle_poses.begin(), result.handle_poses.end());
+            carve_from.insert(carve_from.end(), result.poses.begin(), result.poses.end());
         }
         occupied = voteOccupied(per_frame, grid, config_.min_frames_occupied, config_.vote_radius_voxels);
     }
@@ -145,9 +136,9 @@ CloudOutput CloudPipeline::process(const std::vector<CameraFrame> &frames) const
 
     char line[512];
     std::snprintf(line, sizeof(line),
-                  "frames used %zu; newest has %zu poses, %zu handle; %zu candidates (%s); %zu obstacle cells, "
+                  "frames used %zu; newest has %zu poses; %zu candidates (%s); %zu obstacle cells, "
                   "%zu handle cells; grid %ldx%ldx%ld of %.1f mm within %.2f m",
-                  frames.size(), newest.poses.size(), output.handle_poses.size(), output.candidates.size(),
+                  frames.size(), newest.poses.size(), output.candidates.size(),
                   averaging_summary.c_str(), output.obstacle_cells.size(), output.handle_cells.size(), grid.sizeX(),
                   grid.sizeY(), grid.sizeZ(), config_.voxel_size * 1000.0, config_.crop_radius);
     output.summary = line;

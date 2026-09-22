@@ -105,11 +105,6 @@ void PlannerNode::onPlan(const msgs::PlanGoalConstPtr &goal) {
         server_.setPreempted(result, "cancelled");
         return;
     }
-    if (outcome.success) {
-        LOG_INFO("[planner] %s", outcome.summary.c_str());
-    } else {
-        LOG_WARN("[planner] %s", outcome.summary.c_str());
-    }
     server_.setSucceeded(result, outcome.summary);
 }
 

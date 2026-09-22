@@ -19,8 +19,6 @@ compile_my_exec(cloud_node
     src/OutlierFilter.cpp
     src/Occupancy.cpp
     src/Regions.cpp
-    src/HandleClassifier.cpp
-    src/CurvatureClassifier.cpp
     src/CandidateAveraging.cpp
     src/ConsensusAveraging.cpp)
 target_link_libraries(cloud_node pthread)

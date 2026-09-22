@@ -45,20 +45,6 @@ corridor_carving:                        # obstacle voxels in front of each hand
   length_m: 0.04
   radius_m: 0.02
 
-handle_classifier:
-  method: curvature                      # curvature: logistic regression on how much the pose trace bends
-  curvature:
-    threshold: 0.65                      # score at or above this is handle
-    curvature_chord_m: 0.08              # arc length either side used to measure 3D curvature
-    bend_chord_m: 0.05                   # arc length either side used to measure bend in the image
-    smoothing_window_m: 0.06             # median window along the trace
-    min_chord_fraction: 0.7              # a curvature chord shorter than this fraction of its length is ignored
-    min_bend_span_px: 3.0                # an image chord shorter than this is ignored
-    feature_mean: [2.2619414139736507, 1.1477051149648436]
-    feature_std: [0.9793411571819177, 0.9437532509915271]
-    weights: [0.19815769261425545, 0.5976326457184641]
-    bias: -0.6448103858399833
-
 candidate_averaging:
   method: consensus                      # consensus: keep only spots enough frames agree on, averaged
   consensus:

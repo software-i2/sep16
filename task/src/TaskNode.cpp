@@ -13,6 +13,18 @@
 #include <vector>
 
 namespace task {
+namespace {
+
+std::string after(double delay_s) {
+    if (delay_s <= 0.0) {
+        return "";
+    }
+    char line[32];
+    std::snprintf(line, sizeof(line), " in %.1f s", delay_s);
+    return line;
+}
+
+}  // namespace
 
 TaskNode::TaskNode(const TaskConfig &config)
         : config_(config),
@@ -175,8 +187,8 @@ void TaskNode::enter(State state, const std::string &message) {
     case State::REVERIFY: {
         char line[160];
         std::snprintf(line, sizeof(line),
-                      "; look %u of %d from the park pose did not end in a grasp, looking again in %.1f s",
-                      reverify_attempt_, config_.reverify_attempts, config_.retry_delay_s);
+                      "; look %u of %d from the park pose did not end in a grasp, looking again%s",
+                      reverify_attempt_, config_.reverify_attempts, after(config_.retry_delay_s).c_str());
         publishState(message + line);
         return;
     }
@@ -203,8 +215,8 @@ void TaskNode::enter(State state, const std::string &message) {
 
     case State::RETRY: {
         char line[128];
-        std::snprintf(line, sizeof(line), "; attempt %u found nothing to grab, trying again in %.1f s", attempt_,
-                      config_.retry_delay_s);
+        std::snprintf(line, sizeof(line), "; attempt %u found nothing to grab, trying again%s", attempt_,
+                      after(config_.retry_delay_s).c_str());
         publishState(message + line);
         return;
     }
@@ -233,6 +245,9 @@ void TaskNode::publishState(const std::string &message) {
     msg.grabbed = grabbed_;
     PUBLISH_ROS(pub_state_, msg);
 
+    if (message.empty()) {
+        return;
+    }
     if (state_ == State::FAILED) {
         LOG_ERROR("[task] %s: %s", msg.state.c_str(), message.c_str());
     } else if (state_ == State::RETRY || state_ == State::STOPPED) {
@@ -244,7 +259,6 @@ void TaskNode::publishState(const std::string &message) {
 
 Event TaskNode::checkCollect(std::string &message) {
     if (processing_ && state_ == State::COLLECT) {
-        message = "frames collected";
         return Event::PROCESSING;
     }
     const actionlib::SimpleClientGoalState goal = collect_.getState();
@@ -301,7 +315,6 @@ Event TaskNode::checkPlan(std::string &message) {
 
 Event TaskNode::checkRecollect(std::string &message) {
     if (processing_ && state_ == State::RECOLLECT) {
-        message = "fresh frames collected from the park pose";
         return Event::REPROCESSING;
     }
     const actionlib::SimpleClientGoalState goal = collect_.getState();

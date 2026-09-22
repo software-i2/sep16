@@ -28,7 +28,9 @@ task_state: /task/state                  # msgs/TaskState, latched
 
 viz_arm_body: /viz/arm_body              # visualization_msgs/MarkerArray
 viz_floor: /viz/floor                    # visualization_msgs/Marker
-viz_obstacle_map: /viz/obstacle_map      # sensor_msgs/PointCloud2
-viz_grasp_poses: /viz/grasp_poses        # visualization_msgs/Marker
+viz_obstacle_map: /viz/obstacle_map      # sensor_msgs/PointCloud2 from the survey before the park
+viz_grasp_poses: /viz/grasp_poses        # visualization_msgs/Marker from the survey before the park
+viz_reprocess_obstacle_map: /viz/reprocess/obstacle_map   # sensor_msgs/PointCloud2 from the fresh look at the park pose
+viz_reprocess_grasp_poses: /viz/reprocess/grasp_poses     # visualization_msgs/Marker from the fresh look at the park pose
 viz_chosen_grasp: /viz/chosen_grasp      # visualization_msgs/MarkerArray
 viz_planned_path: /viz/planned_path      # visualization_msgs/Marker

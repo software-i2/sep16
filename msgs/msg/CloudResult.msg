@@ -4,11 +4,13 @@ bool success
 string summary
 uint32 frames_used
 
-# Every grasp pose of the newest frame, split by the handle classifier.
-GraspPose[] handle_poses
-GraspPose[] rope_poses
+# True when this came from a fresh collect, the re-measurement taken from the park pose.
+bool fresh
 
-# Handle poses within reach, averaged over frames when that is switched on.
+# Every grasp pose of the newest frame.
+GraspPose[] poses
+
+# Poses within reach, averaged over frames when that is switched on.
 GraspPose[] candidates
 
 ObstacleMap obstacles

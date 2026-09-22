@@ -10,30 +10,6 @@
 namespace cloud {
 namespace {
 
-void readCurvature(params::Params &cloud, CurvatureSettings &s) {
-    const std::string key = "handle_classifier/curvature/";
-    s.threshold           = cloud.number(key + "threshold");
-    s.curvature_chord     = cloud.number(key + "curvature_chord_m");
-    s.bend_chord          = cloud.number(key + "bend_chord_m");
-    s.smoothing_window    = cloud.number(key + "smoothing_window_m");
-    s.min_chord_fraction  = cloud.number(key + "min_chord_fraction");
-    s.min_bend_span_px    = cloud.number(key + "min_bend_span_px");
-    s.bias                = cloud.number(key + "bias");
-
-    const std::vector<double> mean    = cloud.numbers(key + "feature_mean", 2);
-    const std::vector<double> std_dev = cloud.numbers(key + "feature_std", 2);
-    const std::vector<double> weights = cloud.numbers(key + "weights", 2);
-    for (size_t i = 0; i < 2; ++i) {
-        s.feature_mean[i] = mean[i];
-        s.feature_std[i]  = std_dev[i];
-        s.weights[i]      = weights[i];
-        cloud.require(s.feature_std[i] > 0.0, key + "feature_std", "positive");
-    }
-    cloud.require(s.curvature_chord > 0.0, key + "curvature_chord_m", "positive");
-    cloud.require(s.bend_chord > 0.0, key + "bend_chord_m", "positive");
-    cloud.require(s.smoothing_window > 0.0, key + "smoothing_window_m", "positive");
-}
-
 void readConsensus(params::Params &cloud, ConsensusSettings &s) {
     const std::string key   = "candidate_averaging/consensus/";
     s.min_agreeing_frames   = cloud.whole(key + "min_agreeing_frames");
@@ -67,7 +43,6 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     camera.require(c.camera.width > 0 && c.camera.height > 0, "intrinsics", "a positive image size");
 
     c.switches.outlier_filter      = cloud.flag("switches/outlier_filter");
-    c.switches.handle_classifier   = cloud.flag("switches/handle_classifier");
     c.switches.handle_carving      = cloud.flag("switches/handle_carving");
     c.switches.corridor_carving    = cloud.flag("switches/corridor_carving");
     c.switches.candidate_averaging = cloud.flag("switches/candidate_averaging");
@@ -114,8 +89,6 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.corridor.radius                = cloud.number("corridor_carving/radius_m");
 
     // Every method's settings are read, so switching method is only a change of name.
-    c.classifier_method = cloud.text("handle_classifier/method");
-    readCurvature(cloud, c.curvature);
     c.averaging_method = cloud.text("candidate_averaging/method");
     readConsensus(cloud, c.consensus);
 

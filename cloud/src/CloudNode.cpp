@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <thread>
 
 namespace cloud {
@@ -113,11 +114,12 @@ bool CloudNode::toFrame(const sensor_msgs::PointCloud2 &cloud, const geometry_ms
     return true;
 }
 
-void CloudNode::finishFailed(const std::string &why) {
+void CloudNode::finishFailed(const std::string &why, bool fresh) {
     msgs::CollectResult result;
     result.cloud.header.stamp    = ros::Time::now();
     result.cloud.header.frame_id = config_.base_frame;
     result.cloud.success         = false;
+    result.cloud.fresh           = fresh;
     result.cloud.summary         = why;
     LOG_ERROR("[cloud] %s", why.c_str());
     PUBLISH_ROS(pub_result_, result.cloud);
@@ -177,7 +179,8 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
         if (ros::Time::now() > deadline) {
             finishFailed("only " + std::to_string(feedback.frames_collected) + " of " + std::to_string(needed)
                          + " frames buffered within " + std::to_string(config_.frame_timeout_s) + " s"
-                         + (problem.empty() ? "" : "; last problem: " + problem));
+                         + (problem.empty() ? "" : "; last problem: " + problem),
+                         goal->fresh);
             return;
         }
         std::this_thread::sleep_for(kWaitPollPeriod);
@@ -187,18 +190,20 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
     feedback.frames_collected = static_cast<uint32_t>(frames.size());
     server_.publishFeedback(feedback);
 
-    const auto        started = std::chrono::steady_clock::now();
-    const CloudOutput output  = pipeline_.process(frames);
-    const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
-    LOG_INFO("[cloud] %s (%.2f s)", output.summary.c_str(), seconds);
+    const auto  started = std::chrono::steady_clock::now();
+    CloudOutput output  = pipeline_.process(frames);
+    char        elapsed[24];
+    std::snprintf(elapsed, sizeof(elapsed), " (%.2f s)",
+                  std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
+    output.summary += elapsed;
 
     msgs::CollectResult result;
-    result.cloud = toMessage(output, frames.size());
+    result.cloud = toMessage(output, frames.size(), goal->fresh);
     PUBLISH_ROS(pub_result_, result.cloud);
     server_.setSucceeded(result, output.summary);
 }
 
-msgs::CloudResult CloudNode::toMessage(const CloudOutput &output, size_t frames_used) const {
+msgs::CloudResult CloudNode::toMessage(const CloudOutput &output, size_t frames_used, bool fresh) const {
     const auto toPose = [](const GraspPose &pose) {
         msgs::GraspPose msg;
         msg.point.x    = pose.point.x();
@@ -219,11 +224,9 @@ msgs::CloudResult CloudNode::toMessage(const CloudOutput &output, size_t frames_
     msg.success         = true;
     msg.summary         = output.summary;
     msg.frames_used     = static_cast<uint32_t>(frames_used);
-    for (const GraspPose &pose : output.handle_poses) {
-        msg.handle_poses.push_back(toPose(pose));
-    }
-    for (const GraspPose &pose : output.rope_poses) {
-        msg.rope_poses.push_back(toPose(pose));
+    msg.fresh           = fresh;
+    for (const GraspPose &pose : output.poses) {
+        msg.poses.push_back(toPose(pose));
     }
     for (const GraspPose &pose : output.candidates) {
         msg.candidates.push_back(toPose(pose));

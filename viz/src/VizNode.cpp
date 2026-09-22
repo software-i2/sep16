@@ -34,8 +34,12 @@ VizNode::VizNode(const VizConfig &config)
     INIT_ROS_SUBSCRIBER(sub_plan_result_, config_.topic_plan_result, 1, &VizNode::onPlanResult);
     INIT_ROS_PUBLISHER(pub_arm_body_, visualization_msgs::MarkerArray, config_.topic_arm_body, 1);
     pub_floor_        = mainNodeHandle->advertise<visualization_msgs::Marker>(config_.topic_floor, 1, true);
-    pub_obstacle_map_ = mainNodeHandle->advertise<sensor_msgs::PointCloud2>(config_.topic_obstacle_map, 1, true);
-    pub_grasp_poses_  = mainNodeHandle->advertise<visualization_msgs::Marker>(config_.topic_grasp_poses, 1, true);
+    pub_obstacle_map_ = mainNodeHandle->advertise<sensor_msgs::PointCloud2>(config_.initial.topic_obstacle_map, 1, true);
+    pub_grasp_poses_  = mainNodeHandle->advertise<visualization_msgs::Marker>(config_.initial.topic_grasp_poses, 1, true);
+    pub_reprocess_map_ =
+            mainNodeHandle->advertise<sensor_msgs::PointCloud2>(config_.reprocess.topic_obstacle_map, 1, true);
+    pub_reprocess_poses_ =
+            mainNodeHandle->advertise<visualization_msgs::Marker>(config_.reprocess.topic_grasp_poses, 1, true);
     pub_chosen_grasp_ = mainNodeHandle->advertise<visualization_msgs::MarkerArray>(config_.topic_chosen_grasp, 1, true);
     pub_planned_path_ = mainNodeHandle->advertise<visualization_msgs::Marker>(config_.topic_planned_path, 1, true);
     drawFloor();
@@ -137,28 +141,34 @@ void VizNode::drawArmBody() {
 }
 
 void VizNode::onCloudResult(const msgs::CloudResult::ConstPtr &msg) {
+    if (msg->fresh) {
+        drawCloud(*msg, config_.reprocess, pub_reprocess_poses_, pub_reprocess_map_);
+        return;
+    }
+    drawCloud(*msg, config_.initial, pub_grasp_poses_, pub_obstacle_map_);
+    // A new survey starts a new pick, so whatever the last park re-measured is no longer the scene.
+    drawCloud(msgs::CloudResult(), config_.reprocess, pub_reprocess_poses_, pub_reprocess_map_);
+}
+
+void VizNode::drawCloud(const msgs::CloudResult &msg, const CloudView &view, ros::Publisher &poses_pub,
+                        ros::Publisher &map_pub) {
     // Drawn in the frame the cloud says it is in, not the arm base. Once the vehicle can move,
     // a snapshot latched at the old pose and the live view are in different frames, and
     // stamping both with the arm base would draw them on top of each other.
-    const std::string &frame = msg->header.frame_id.empty() ? config_.base_frame : msg->header.frame_id;
+    const std::string &frame = msg.header.frame_id.empty() ? config_.base_frame : msg.header.frame_id;
 
-    visualization_msgs::Marker poses = marker("grasp_poses", visualization_msgs::Marker::SPHERE_LIST, config_.handle_colour);
+    visualization_msgs::Marker poses = marker("grasp_poses", visualization_msgs::Marker::SPHERE_LIST, view.grasp_pose);
     poses.header.frame_id = frame;
     poses.scale.x = poses.scale.y = poses.scale.z = config_.grasp_pose_size;
-    for (const msgs::GraspPose &pose : msg->handle_poses) {
+    for (const msgs::GraspPose &pose : msg.poses) {
         poses.points.push_back(pose.point);
-        poses.colors.push_back(config_.handle_colour);
-    }
-    for (const msgs::GraspPose &pose : msg->rope_poses) {
-        poses.points.push_back(pose.point);
-        poses.colors.push_back(config_.rope_colour);
     }
     if (poses.points.empty()) {
         poses.action = visualization_msgs::Marker::DELETEALL;
     }
-    PUBLISH_ROS(pub_grasp_poses_, poses);
+    PUBLISH_ROS(poses_pub, poses);
 
-    const msgs::ObstacleMap &map = msg->obstacles;
+    const msgs::ObstacleMap &map = msg.obstacles;
     sensor_msgs::PointCloud2 cloud;
     cloud.header.frame_id = frame;
     cloud.header.stamp    = ros::Time::now();
@@ -188,9 +198,9 @@ void VizNode::onCloudResult(const msgs::CloudResult::ConstPtr &msg) {
             ++x, ++y, ++z, ++r, ++g, ++b;
         }
     };
-    addCells(map.obstacle_cells, config_.obstacle_colour);
-    addCells(map.handle_cells, config_.handle_cell_colour);
-    PUBLISH_ROS(pub_obstacle_map_, cloud);
+    addCells(map.obstacle_cells, view.obstacle);
+    addCells(map.handle_cells, view.handle_cell);
+    PUBLISH_ROS(map_pub, cloud);
 }
 
 void VizNode::onPlanResult(const msgs::GraspPlan::ConstPtr &msg) {

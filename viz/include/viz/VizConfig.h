@@ -13,6 +13,16 @@
 
 namespace viz {
 
+// One drawing of a cloud result: its own colours on its own topics, so the two passes can be
+// told apart and switched on and off separately.
+struct CloudView {
+    std_msgs::ColorRGBA grasp_pose;
+    std_msgs::ColorRGBA obstacle;
+    std_msgs::ColorRGBA handle_cell;
+    std::string         topic_grasp_poses;
+    std::string         topic_obstacle_map;
+};
+
 // Lengths in metres, angles in radians.
 struct VizConfig {
     kine::ArmConfig                            arm;
@@ -28,11 +38,10 @@ struct VizConfig {
     double chosen_grasp_length = 0.0;
     double line_width          = 0.0;
 
+    CloudView initial;    // the survey taken before the vehicle parks
+    CloudView reprocess;  // the fresh look taken from the park pose
+
     std_msgs::ColorRGBA arm_body_colour;
-    std_msgs::ColorRGBA handle_colour;
-    std_msgs::ColorRGBA rope_colour;
-    std_msgs::ColorRGBA obstacle_colour;
-    std_msgs::ColorRGBA handle_cell_colour;
     std_msgs::ColorRGBA chosen_grasp_colour;
     std_msgs::ColorRGBA planned_path_colour;
     std_msgs::ColorRGBA floor_colour;
@@ -42,8 +51,6 @@ struct VizConfig {
     std::string topic_plan_result;
     std::string topic_arm_body;
     std::string topic_floor;
-    std::string topic_obstacle_map;
-    std::string topic_grasp_poses;
     std::string topic_chosen_grasp;
     std::string topic_planned_path;
 };

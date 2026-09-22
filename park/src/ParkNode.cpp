@@ -459,11 +459,8 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         }
     }
 
-    const Verdict stay = verify(grasps, Pose(), *grid, home, 1, true);
-    LOG_INFO("[park] screened %zu poses in %.1f s, %zu could hold something, rechecked %zu; "
-             "staying holds %d routes to %d, chosen holds %d routes to %d",
-             screened, (ros::Time::now() - verify_started).toSec(), ranked.size(), exact, stay.held, stay.routable,
-             best_held, best_routable);
+    const Verdict stay      = verify(grasps, Pose(), *grid, home, 1, true);
+    const double  screened_s = (ros::Time::now() - verify_started).toSec();
     if (blocked_transit > 0) {
         LOG_INFO("[park] %zu of the %zu best poses were refused because the drive would have put the arm through "
                  "the scene",
@@ -496,7 +493,6 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         result.message = "staying put: the best pose holds " + std::to_string(best_held) + " of "
                          + std::to_string(grasps.size()) + " candidates but can route to "
                          + std::to_string(best_routable) + ", short of " + std::to_string(config_.min_routable);
-        LOG_WARN("[park] %s", result.message.c_str());
         server_.setSucceeded(result);
         return;
     }
@@ -513,14 +509,14 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
             result.message = "reach found " + std::to_string(shortlist.size())
                              + " possible poses, but the obstacle map blocked the arm at every one that was checked";
         }
-        LOG_WARN("[park] %s, %zu poses scored", result.message.c_str(), scored_count);
         server_.setSucceeded(result);
         return;
     }
 
-    LOG_INFO("[park] %zu poses scored: staying reaches %d of %zu, moving (%.3f %.3f %.3f, %.1f deg) reaches %d",
-             scored_count, stayed.admitted, grasps.size(), chosen.pose.x, chosen.pose.y, chosen.pose.z,
-             kine::radToDeg(chosen.pose.yaw), chosen.admitted);
+    LOG_INFO("[park] screened %zu of %zu poses in %.1f s: staying holds %d routes to %d, chosen (%.3f %.3f %.3f, "
+             "%.1f deg) holds %d routes to %d",
+             screened, scored_count, screened_s, stay.held, stay.routable, chosen.pose.x, chosen.pose.y, chosen.pose.z,
+             kine::radToDeg(chosen.pose.yaw), best_held, best_routable);
 
     // Latch the snapshot where it was taken, before anything moves. The candidates keep the
     // numbers cloud gave them; only the label changes, because the scene frame and the arm
@@ -570,7 +566,7 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
 
     result.success = true;
     result.message = "parked, " + std::to_string(chosen.admitted) + " of " + std::to_string(grasps.size())
-                     + " candidates in reach";
+                     + " parking spots in reach";
     server_.setSucceeded(result);
 }
 

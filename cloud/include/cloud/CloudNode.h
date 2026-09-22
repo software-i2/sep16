@@ -31,8 +31,8 @@ private:
     void pairLatest();
     bool toFrame(const sensor_msgs::PointCloud2 &cloud, const geometry_msgs::PoseArray &poses, CameraFrame &frame,
                  std::string &why);
-    msgs::CloudResult toMessage(const CloudOutput &output, size_t frames_used) const;
-    void              finishFailed(const std::string &why);
+    msgs::CloudResult toMessage(const CloudOutput &output, size_t frames_used, bool fresh) const;
+    void              finishFailed(const std::string &why, bool fresh);
 
     CloudConfig                                        config_;
     const CloudPipeline                               &pipeline_;

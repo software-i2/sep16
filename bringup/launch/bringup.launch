@@ -10,7 +10,6 @@
     <arg name="viz" default="true" doc="start the viz node"/>
     <arg name="foxglove" default="true" doc="start foxglove_bridge"/>
     <arg name="outlier_filter" default="true" doc="drop flying pixels before building the obstacle map"/>
-    <arg name="handle_classifier" default="true" doc="false: every grasp pose counts as handle"/>
     <arg name="handle_carving" default="true" doc="let the jaw blades close in on the handle surface"/>
     <arg name="corridor_carving" default="true" doc="treat the approach corridor in front of each handle pose as handle"/>
     <arg name="candidate_averaging" default="true" doc="keep only candidates the collected frames agree on"/>
@@ -32,7 +31,6 @@
 
     <param name="driver/simulated" type="bool" value="$(arg sim)"/>
     <param name="cloud/switches/outlier_filter" type="bool" value="$(arg outlier_filter)"/>
-    <param name="cloud/switches/handle_classifier" type="bool" value="$(arg handle_classifier)"/>
     <param name="cloud/switches/handle_carving" type="bool" value="$(arg handle_carving)"/>
     <param name="cloud/switches/corridor_carving" type="bool" value="$(arg corridor_carving)"/>
     <param name="cloud/switches/candidate_averaging" type="bool" value="$(arg candidate_averaging)"/>

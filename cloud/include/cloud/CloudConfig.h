@@ -5,7 +5,6 @@
 
 #include <params/Params.h>
 
-#include <array>
 #include <string>
 
 namespace cloud {
@@ -21,7 +20,6 @@ struct CameraModel {
 
 struct Switches {
     bool outlier_filter      = false;
-    bool handle_classifier   = false;
     bool handle_carving      = false;
     bool corridor_carving    = false;
     bool candidate_averaging = false;
@@ -48,19 +46,6 @@ struct HandleRegionSettings {
 struct CorridorSettings {
     double length = 0.0;
     double radius = 0.0;
-};
-
-struct CurvatureSettings {
-    double                threshold          = 0.0;
-    double                curvature_chord    = 0.0;
-    double                bend_chord         = 0.0;
-    double                smoothing_window   = 0.0;
-    double                min_chord_fraction = 0.0;
-    double                min_bend_span_px   = 0.0;
-    std::array<double, 2> feature_mean{};
-    std::array<double, 2> feature_std{};
-    std::array<double, 2> weights{};
-    double                bias = 0.0;
 };
 
 // Lengths in metres, angles in radians.
@@ -103,9 +88,6 @@ struct CloudConfig {
     OccupancySettings     occupancy;
     HandleRegionSettings  handle_region;
     CorridorSettings      corridor;
-
-    std::string       classifier_method;
-    CurvatureSettings curvature;
 
     std::string       averaging_method;
     ConsensusSettings consensus;
