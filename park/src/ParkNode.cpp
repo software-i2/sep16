@@ -432,8 +432,8 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
     // costs more than every other check in this node put together.
     const size_t exact = std::min<size_t>(static_cast<size_t>(config_.verify_exact), ranked.size());
     size_t       blocked_transit = 0;
-    int          best_routable = -1;
-    best_held                  = -1;
+    int          best_routable = 0;
+    best_held                  = 0;
     for (size_t i = 0; i < exact; ++i) {
         // Holds at full fidelity, because that is the number the planner will reproduce.
         // Routes at the screening stride, because tracing a whole line exactly costs more than
@@ -477,7 +477,9 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         chosen          = stayed;
         chosen.pose     = Pose();
         chosen.admitted = stay.held;
-        found           = stay.held > 0;
+        best_held       = stay.held;
+        best_routable   = stay.routable;
+        found           = true;
     }
 
     stayed.admitted = stay.held;
@@ -499,16 +501,20 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         return;
     }
     if (!found) {
-
         result.success = false;
-        result.message = shortlist.empty()
-                                 ? "no pose in the box brings any of the " + std::to_string(grasps.size())
-                                           + " candidates within reach"
-                                 : "reach found " + std::to_string(shortlist.size())
-                                           + " possible poses, but the obstacle map blocked the arm at every one "
-                                             "that was checked";
+        if (shortlist.empty()) {
+            result.message = "no pose in the box brings any of the " + std::to_string(grasps.size())
+                             + " candidates within reach";
+        } else if (blocked_transit > 0 && blocked_transit == exact) {
+            result.message = "reach found " + std::to_string(shortlist.size()) + " possible poses, but the drive to "
+                             + "every one of the best " + std::to_string(exact)
+                             + " would have put the arm through the scene";
+        } else {
+            result.message = "reach found " + std::to_string(shortlist.size())
+                             + " possible poses, but the obstacle map blocked the arm at every one that was checked";
+        }
         LOG_WARN("[park] %s, %zu poses scored", result.message.c_str(), scored_count);
-        server_.setAborted(result);
+        server_.setSucceeded(result);
         return;
     }
 
