@@ -20,7 +20,7 @@ camera_anchor_frame: camera_anchor
 # UNMEASURED. Measure the displacement from the vehicle origin to the arm shoulder base and
 # put it here. A hand fit biases every parking pose in the same direction, and unlike camera
 # scatter it will not show up as noise in any test.
-arm_mount_position_m: [0.0, 0.0, 0.0]
+arm_mount_position_m: [0.35, 0.0, -0.05]
 
 # The arm is mounted inverted: rolled 180 deg about x, so arm_base +z points down in the
 # vehicle. Consequence: planner.yaml's safety_floor_z_m guards the vehicle's own hull, not the
