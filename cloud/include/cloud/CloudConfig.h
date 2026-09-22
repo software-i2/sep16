@@ -72,9 +72,6 @@ struct CloudConfig {
     Switches    switches;
 
     int    frames_to_collect = 0;
-    int    frames_to_advance = 0;
-    int    fresh_frames      = 0;  // window size for a collect goal with fresh set; nothing is reused
-    double max_reuse_gap_s   = 0.0;
     double transform_wait_s  = 0.0;
     double frame_timeout_s   = 0.0;
     double voxel_size        = 0.0;

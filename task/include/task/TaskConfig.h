@@ -11,13 +11,16 @@ namespace task {
 
 // Lengths in metres.
 struct TaskConfig {
-    double rate_hz       = 0.0;
-    double server_wait_s = 0.0;
-    double retry_delay_s = 0.0;
-    int    max_attempts  = 0;
+    double rate_hz          = 0.0;
+    double server_wait_s    = 0.0;
+    double stream_timeout_s = 0.0;
+    double spot_search_s    = 0.0;  // how long to keep surveying with nothing worth parking for in view
+    double repark_search_s  = 0.0;  // how long to keep reparking while the search never moves the vehicle
+    double retry_delay_s    = 0.0;
+    int    retarget_attempts = 0;  // looks from one park pose before it is given up on
+    int    park_attempts     = 0;  // park poses tried before the pick is failed
 
     std::string base_frame;
-    int         reverify_attempts       = 0;
     double      reverify_match_distance = 0.0;
     double      reverify_transform_wait = 0.0;
 
@@ -32,6 +35,7 @@ struct TaskConfig {
     std::string service_stop;
     std::string topic_state;
     std::string topic_joint_states;
+    std::string topic_camera_cloud;
     std::string action_collect;
     std::string action_park;
     std::string action_plan;

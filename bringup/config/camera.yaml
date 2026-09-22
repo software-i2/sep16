@@ -20,11 +20,7 @@ frame: camera_link                       # frame_id on the cloud and the grasp p
 mount_frame: camera_mount
 mount_position_m: [0.0, -0.05, 0.0]      # camera_mount origin in the vehicle body frame
 mount_rpy_deg: [0.0, 0.0, 0.0]           # camera_mount orientation in the vehicle body frame
-# Not a mounting choice: it is the fixed step from the body convention camera_mount uses to
-# the optical one the driver publishes in. The optical axis is camera_link's -z, and yaw turns
-# about z, so the third number alone can never tip the camera off vertical. The roll does that;
-# the yaw then aims it along +x.
-frame_rpy_deg: [90.0, 0.0, -90.0]
+frame_rpy_deg: [0.0, 0.0, -90.0]
 
 intrinsics:                              # pixel u = cx + fx * x / -z, v = cy - fy * y / -z; fitted to the bag to 0.0001 px
   width_px: 800

@@ -44,8 +44,6 @@ private:
     sensor_msgs::PointCloud2::ConstPtr latest_cloud_;
     geometry_msgs::PoseArray::ConstPtr latest_poses_;
     std::deque<CameraFrame>            frames_;
-    size_t                             arrived_since_window_ = 0;
-    ros::Time                          window_served_;
     bool                               subscribed_ = false;
     std::string                        frame_problem_;
 

@@ -46,9 +46,7 @@ void CloudNode::pairLatest() {
     std::string why;
     if (toFrame(*latest_cloud_, *latest_poses_, frame, why)) {
         frames_.push_back(std::move(frame));
-        ++arrived_since_window_;
-        const size_t keep = static_cast<size_t>(std::max(config_.frames_to_collect, config_.fresh_frames));
-        while (frames_.size() > keep) {
+        while (frames_.size() > static_cast<size_t>(config_.frames_to_collect)) {
             frames_.pop_front();
         }
     } else {
@@ -63,6 +61,10 @@ bool CloudNode::toFrame(const sensor_msgs::PointCloud2 &cloud, const geometry_ms
     if (cloud.header.frame_id != config_.camera_frame || poses.header.frame_id != config_.camera_frame) {
         why = "the camera publishes in '" + cloud.header.frame_id + "' but camera.yaml says '" + config_.camera_frame
               + "'";
+        return false;
+    }
+    if (poses.poses.empty()) {
+        why = "the frame came with no grasp poses";
         return false;
     }
 
@@ -128,29 +130,21 @@ void CloudNode::finishFailed(const std::string &why, bool fresh) {
 
 void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
     const bool   averaging = config_.switches.candidate_averaging || config_.switches.obstacle_averaging;
-    const int    window    = goal->fresh ? config_.fresh_frames : config_.frames_to_collect;
-    const size_t needed    = averaging ? static_cast<size_t>(window) : 1;
-    const size_t advance   = goal->fresh ? needed : std::min(static_cast<size_t>(config_.frames_to_advance), needed);
+    const size_t needed    = averaging ? static_cast<size_t>(config_.frames_to_collect) : 1;
 
-    // Frames buffered across a long gap saw the arm moving through the view, so none of them can be reused.
-    // A fresh goal refuses to reuse anything whatever the gap says: the vehicle has moved since.
-    const bool reuse = !goal->fresh && !window_served_.isZero()
-                       && ros::Time::now() - window_served_ <= ros::Duration(config_.max_reuse_gap_s);
+    // Every collect takes its whole window fresh. Anything buffered before the goal was sent may
+    // have seen the arm moving through the view, or been taken from somewhere the vehicle has left.
     {
         std::lock_guard<std::mutex> lock(frames_mutex_);
         frame_problem_.clear();
-        if (!reuse) {
-            frames_.clear();
-            arrived_since_window_ = 0;
-        }
+        frames_.clear();
     }
     if (!subscribed_) {
         INIT_ROS_SUBSCRIBER(sub_cloud_, config_.topic_cloud, 1, &CloudNode::onCloud);
         INIT_ROS_SUBSCRIBER(sub_grasp_poses_, config_.topic_grasp_poses, 1, &CloudNode::onGraspPoses);
         subscribed_ = true;
     }
-    LOG_INFO("[cloud] window of %zu frame(s), %zu of them new%s", needed, reuse ? advance : needed,
-             goal->fresh ? ", nothing reused" : "");
+    LOG_INFO("[cloud] window of %zu fresh frame(s)", needed);
 
     msgs::CollectFeedback feedback;
     feedback.stage     = msgs::CollectFeedback::COLLECTING;
@@ -162,11 +156,8 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
             std::lock_guard<std::mutex> lock(frames_mutex_);
             feedback.frames_collected = static_cast<uint32_t>(frames_.size());
             problem                   = frame_problem_;
-            // The window is served once it is full and enough of it has been replaced since the last one.
-            if (frames_.size() >= needed && arrived_since_window_ >= advance) {
+            if (frames_.size() >= needed) {
                 frames.assign(frames_.end() - static_cast<long>(needed), frames_.end());
-                arrived_since_window_ = 0;
-                window_served_        = ros::Time::now();
                 break;
             }
         }

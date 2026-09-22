@@ -3,14 +3,22 @@
 
 rate_hz: 5.0                             # state machine ticks per second
 server_wait_s: 5.0                       # how long to wait for the cloud, planner and executor to be up
+stream_timeout_s: 10.0                   # how long STREAM waits for the camera to produce a frame before failing
+spot_search_s: 60.0                      # keep surveying this long while nothing worth parking for is in view.
+                                         # Unlimited tries inside it: nothing has moved and nothing has been decided,
+                                         # so an empty survey costs only the frames it waited for and spends no park
+repark_search_s: 120.0                   # give up after this long reparking without the search ever moving the
+                                         # vehicle. Only a spot it actually drove to counts against park_attempts,
+                                         # so a search that keeps electing to stay put spends none and needs a clock
 retry_delay_s: 0.0                       # pause before collecting again when nothing could be planned, before and after a park; the cloud buffer already paces the loop
-max_attempts: 5                          # give up after this many; 0 keeps retrying until task/stop
+retarget_attempts: 10                    # fresh collect-and-plan tries at one park pose before it is given up on;
+                                         # nothing moves between them, so a try costs only the frames it waits for
+park_attempts: 3                         # parking spots the vehicle actually drove to before the pick is failed;
+                                         # searching from where it already stands is free and is not counted
 
 reverify:                                # once the vehicle has parked, the scene is measured again from there and
                                          # the pick is planned from that, so the drive's dead reckoning and anything
                                          # the scene did on the way are not carried into the grasp
-  attempts: 3                            # fresh collect-and-plan tries at the park pose before the pick is flagged;
-                                         # nothing moves between them, so a try costs only the frames it waits for
   match_distance_m: 0.05                 # how far a candidate from the pre-move snapshot may sit from a freshly
                                          # measured one and still be taken for the same handle, when reporting how
                                          # far the scene moved across the drive

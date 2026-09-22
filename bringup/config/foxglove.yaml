@@ -3,3 +3,4 @@
 
 port: 8765
 address: 0.0.0.0
+send_buffer_limit: 100000000             # bytes queued per client before messages are dropped; one 800x600 cloud is several MB and the 10 MB default overflows

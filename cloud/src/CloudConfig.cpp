@@ -49,9 +49,6 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.switches.obstacle_averaging  = cloud.flag("switches/obstacle_averaging");
 
     c.frames_to_collect = cloud.whole("frames_to_collect");
-    c.frames_to_advance = cloud.whole("frames_to_advance");
-    c.fresh_frames      = cloud.whole("fresh_collect/frames_to_collect");
-    c.max_reuse_gap_s   = cloud.number("max_reuse_gap_s");
     c.frame_timeout_s   = cloud.number("frame_timeout_s");
     c.transform_wait_s  = cloud.number("transform_wait_s");
     c.voxel_size        = cloud.number("voxel_size_m");
@@ -60,10 +57,6 @@ CloudConfig loadCloudConfig(params::Params &cloud, params::Params &camera, param
     c.bar_column        = cloud.whole("pose_axes/bar_column");
 
     cloud.require(c.frames_to_collect > 0, "frames_to_collect", "positive");
-    cloud.require(c.frames_to_advance > 0 && c.frames_to_advance <= c.frames_to_collect, "frames_to_advance",
-                  "between 1 and frames_to_collect");
-    cloud.require(c.fresh_frames > 0, "fresh_collect/frames_to_collect", "positive");
-    cloud.require(c.max_reuse_gap_s > 0.0, "max_reuse_gap_s", "positive");
     cloud.require(c.frame_timeout_s > 0.0, "frame_timeout_s", "positive");
     cloud.require(c.transform_wait_s >= 0.0, "transform_wait_s", "zero or more");
     cloud.require(c.voxel_size > 0.0, "voxel_size_m", "positive");

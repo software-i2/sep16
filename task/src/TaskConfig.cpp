@@ -6,13 +6,16 @@ namespace task {
 
 TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Params &topics) {
     TaskConfig c;
-    c.rate_hz       = task.number("rate_hz");
-    c.server_wait_s = task.number("server_wait_s");
-    c.retry_delay_s = task.number("retry_delay_s");
-    c.max_attempts  = task.whole("max_attempts");
+    c.rate_hz           = task.number("rate_hz");
+    c.server_wait_s     = task.number("server_wait_s");
+    c.stream_timeout_s  = task.number("stream_timeout_s");
+    c.spot_search_s     = task.number("spot_search_s");
+    c.repark_search_s   = task.number("repark_search_s");
+    c.retry_delay_s     = task.number("retry_delay_s");
+    c.retarget_attempts = task.whole("retarget_attempts");
+    c.park_attempts     = task.whole("park_attempts");
 
     c.base_frame              = arm.text("base_frame");
-    c.reverify_attempts       = task.whole("reverify/attempts");
     c.reverify_match_distance = task.number("reverify/match_distance_m");
     c.reverify_transform_wait = task.number("reverify/transform_wait_s");
 
@@ -25,9 +28,12 @@ TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Par
 
     task.require(c.rate_hz > 0.0, "rate_hz", "positive");
     task.require(c.server_wait_s > 0.0, "server_wait_s", "positive");
+    task.require(c.stream_timeout_s > 0.0, "stream_timeout_s", "positive");
+    task.require(c.spot_search_s > 0.0, "spot_search_s", "positive");
+    task.require(c.repark_search_s > 0.0, "repark_search_s", "positive");
     task.require(c.retry_delay_s >= 0.0, "retry_delay_s", "zero or more");
-    task.require(c.max_attempts >= 0, "max_attempts", "zero or more");
-    task.require(c.reverify_attempts >= 0, "reverify/attempts", "zero or more");
+    task.require(c.retarget_attempts >= 0, "retarget_attempts", "zero or more");
+    task.require(c.park_attempts >= 0, "park_attempts", "zero or more");
     task.require(c.reverify_match_distance > 0.0, "reverify/match_distance_m", "positive");
     task.require(c.reverify_transform_wait >= 0.0, "reverify/transform_wait_s", "zero or more");
     task.require(c.jaw_settle_tolerance > 0.0, "jaw/settle_tolerance_m", "positive");
@@ -39,6 +45,7 @@ TaskConfig loadTaskConfig(params::Params &task, params::Params &arm, params::Par
     c.service_stop       = topics.text("task_stop");
     c.topic_state        = topics.text("task_state");
     c.topic_joint_states = topics.text("joint_states");
+    c.topic_camera_cloud = topics.text("camera_cloud");
     c.action_collect     = topics.text("cloud_collect");
     c.action_park        = topics.text("park_park");
     c.action_plan        = topics.text("planner_plan");

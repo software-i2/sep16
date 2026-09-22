@@ -1,16 +1,9 @@
 # Copyright by BeeX [2026]
 # Point cloud processing. Loaded into /cloud. Stages are switched on and off by the launch switches.
 
-frames_to_collect: 5                     # frames in the window when either averaging switch is on, otherwise 1
-frames_to_advance: 2                     # new frames per attempt; the rest are reused, and equalling frames_to_collect collects every frame fresh
-max_reuse_gap_s: 2.0                     # frames are only reused when the last attempt was this recent; a longer gap means the arm has moved through the view
+frames_to_collect: 5                     # frames in the window when either averaging switch is on, otherwise 1; every collect takes them fresh
 
-fresh_collect:                           # a collect asked for with fresh set, which is how the task re-measures the
-                                         # scene once the vehicle has parked
-  frames_to_collect: 5                   # the whole window is re-taken; max_reuse_gap_s does not apply, because a
-                                         # short park can finish inside it and would blend frames from before the move
-
-frame_timeout_s: 15.0                    # give up if the frames have not arrived within this
+frame_timeout_s: 30.0                    # give up if the frames have not arrived within this; frames without grasp poses are skipped, so this covers the gaps too
 transform_wait_s: 0.2                    # how long to wait for the camera transform at the frame's own stamp
 anchor_frame: camera_anchor              # treat every cloud as seen from this frame rather than from camera_link;
                                          # empty uses camera_link, which on a replayed bag drags the scene along
@@ -45,8 +38,8 @@ corridor_carving:                        # obstacle voxels in front of each hand
   length_m: 0.04
   radius_m: 0.02
 
-candidate_averaging:
-  method: consensus                      # consensus: keep only spots enough frames agree on, averaged
+candidate_averaging:                     # off by default: see switches/candidate_averaging in bringup.launch
+  method: consensus                     # consensus: keep only spots enough frames agree on, averaged
   consensus:
     min_agreeing_frames: 2
     match_distance_m: 0.010              # a frame's crossing must be this close to count
@@ -60,6 +53,6 @@ candidate_averaging:
     drift_direction_ratio: 0.2           # drift is only estimated along directions constrained at least this well, relative to the best
     drift_significance_sigmas: 3.0       # drift within this many standard errors of zero is treated as noise
 
-obstacle_averaging:                      # off by default: see switches/obstacle_averaging in bringup.launch
+obstacle_averaging:
   min_frames_occupied: 2                 # a voxel is an obstacle when this many frames saw it occupied
   vote_radius_voxels: 1                  # how far a frame's vote reaches, in voxels; 0 is the cell alone, 2 is 5 mm at this resolution
