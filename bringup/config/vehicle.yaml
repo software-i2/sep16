@@ -29,7 +29,7 @@ arm_mount_position_m: [0.0, 0.0, 0.0]
 arm_mount_rpy_deg: [180.0, 0.0, 0.0]
 
 search:                                  # bounded so the pose search cannot explode
-  box_xy_m: 2.0
+  box_xy_m: 1.0
   box_z_m: 0.5
   box_yaw_deg: 45.0
   coarse_step_m: 0.100
@@ -42,22 +42,20 @@ search:                                  # bounded so the pose search cannot exp
                                          # where the arm stands; arriving somewhere unworkable cannot be undone
   standoff_min_m: 0.20                   # a grasp only counts while the camera is inside this band;
   standoff_max_m: 0.30                   # nearer and the depth is rubbish, further and the arm cannot follow it in
+  travel_cost_per_m: 1.0                 # grasps a metre of driving is worth giving up. The drive is time the
+                                         # scene spends moving away from the snapshot, so a far pose has to hold
+                                         # strictly more to win. Zero ranks on grasps alone, as it used to
   verify_count: 1200                     # most poses to put through the full collision check
-  verify_budget_s: 6.0                   # and never spend longer than this doing it, whatever the count
+  verify_budget_s: 3.0                   # and never spend longer than this doing it, whatever the count
   verify_blade_stride: 20                # screening tests every nth jaw sample; optimistic, so the winner is rechecked
-  verify_exact_count: 12                 # best screened poses re-tested at full blade fidelity
+  verify_exact_count: 10                  # best screened poses re-tested at full blade fidelity. Deliberately few:
+                                         # this stage has no time budget, and all three failing costs only a
+                                         # stay-put and a fresh collect, which is cheaper than a stale scene
   transit_samples: 16                    # points along the drive where the arm is checked against the scene
 
 move:                                    # the simulated vehicle; a real one takes a setpoint instead
   speed_m_s: 0.05
   rate_hz: 20.0
-
-# The snapshot is carried through the move by dead reckoning, so it slips from the truth by
-# however badly the vehicle's own pose is known. Zero means the vehicle lands exactly where it
-# was told, which flatters every result; raise it to find out how much margin a park pose needs.
-drift:
-  per_metre_m: 0.0
-  yaw_per_metre_deg: 0.0
 
 reach_table:
   cell_m: 0.002                          # below the obstacle voxel size, so the table is never the coarsest step

@@ -46,6 +46,7 @@ struct SearchBox {
     int    min_grasps    = 0;
     double standoff_min  = 0.0;  // a grasp only counts while the camera is this far from it
     double standoff_max  = 0.0;
+    double travel_cost   = 0.0;  // grasps a metre of body travel is worth giving up
 };
 
 // Coarse sweep then a fine pass around the best cells, scored by how many grasps the reach

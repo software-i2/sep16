@@ -79,10 +79,11 @@ Scored PoseSearch::scoreOne(const std::vector<Grasp> &grasps, const Pose &pose) 
             ++out.admitted;
         }
     }
-    // Valid grasps and nothing else. Travel is reported, never scored: a pose that can hold
-    // more is better, and a metre of transit does not make up for a grasp that is not there.
+    // Valid grasps, less what the drive costs. travel_cost is how many grasps a metre is worth
+    // giving up, so at zero this is the grasp count and nothing else; the drive is time the
+    // scene spends moving, so a pose that holds no more than a nearer one should lose.
     out.travel = std::hypot(std::hypot(pose.x, pose.y), pose.z);
-    out.score  = out.admitted;
+    out.score  = out.admitted - box_.travel_cost * out.travel;
     return out;
 }
 

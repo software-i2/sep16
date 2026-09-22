@@ -44,6 +44,7 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     c.search.min_grasps   = vehicle.whole("search/min_grasps");
     c.search.standoff_min = vehicle.number("search/standoff_min_m");
     c.search.standoff_max = vehicle.number("search/standoff_max_m");
+    c.search.travel_cost  = vehicle.number("search/travel_cost_per_m");
 
     const std::vector<double> camera_position  = camera.numbers("mount_position_m", 3);
     const std::vector<double> camera_mount_rpy  = camera.numbers("mount_rpy_deg", 3);
@@ -73,9 +74,6 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     c.move_speed_m_s = vehicle.number("move/speed_m_s");
     c.move_rate_hz   = vehicle.number("move/rate_hz");
 
-    c.drift_per_metre     = vehicle.number("drift/per_metre_m");
-    c.drift_yaw_per_metre = kine::degToRad(vehicle.number("drift/yaw_per_metre_deg"));
-
     c.topic_joint_states = topics.text("joint_states");
     c.action_park        = topics.text("park_park");
     c.topic_park_result  = topics.text("park_result");
@@ -99,6 +97,7 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     vehicle.require(c.search.min_grasps > 0, "search/min_grasps", "positive");
     vehicle.require(c.search.standoff_min >= 0.0 && c.search.standoff_min < c.search.standoff_max,
                     "search/standoff_min_m", "zero or more and below standoff_max_m");
+    vehicle.require(c.search.travel_cost >= 0.0, "search/travel_cost_per_m", "zero or more");
     vehicle.require(c.verify_count > 0, "search/verify_count", "positive");
     vehicle.require(c.verify_budget > 0.0, "search/verify_budget_s", "positive");
     vehicle.require(c.verify_stride > 0, "search/verify_blade_stride", "positive");
@@ -107,8 +106,6 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     vehicle.require(c.min_routable >= 0, "search/min_routable", "zero or more");
     vehicle.require(c.move_speed_m_s > 0.0, "move/speed_m_s", "positive");
     vehicle.require(c.move_rate_hz > 0.0, "move/rate_hz", "positive");
-    vehicle.require(c.drift_per_metre >= 0.0, "drift/per_metre_m", "zero or more");
-    vehicle.require(c.drift_yaw_per_metre >= 0.0, "drift/yaw_per_metre_deg", "zero or more");
     return c;
 }
 

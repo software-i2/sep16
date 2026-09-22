@@ -292,6 +292,12 @@ bool ParkNode::walkTo(const Pose &target, std::string &why) {
     const double distance = std::hypot(std::hypot(target.x - start.x, target.y - start.y), target.z - start.z);
     const int    steps = std::max(1, static_cast<int>(std::ceil(distance / config_.move_speed_m_s * config_.move_rate_hz)));
 
+    // The setpoint a real vehicle would be handed, in the frame it would be handed it in. Once,
+    // not per step: the steps are this node pretending to be the controller.
+    LOG_INFO("[park] setpoint in %s: (%.3f %.3f %.3f, %.1f deg), %.3f m from (%.3f %.3f %.3f, %.1f deg)",
+             config_.locked_frame.c_str(), target.x, target.y, target.z, kine::radToDeg(target.yaw), distance,
+             start.x, start.y, start.z, kine::radToDeg(start.yaw));
+
     ros::Rate rate(config_.move_rate_hz);
     for (int n = 1; n <= steps; ++n) {
         if (server_.isPreemptRequested() || !ros::ok()) {
@@ -430,9 +436,15 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
     // planner turns into a path; a pose with more holds and no route is the no_path case.
     // Routes are traced at the screening stride: tracing a whole line at full blade fidelity
     // costs more than every other check in this node put together.
+    //
+    // Travel breaks ties below routes, never above them: a pose that can be driven to and
+    // reached beats a nearer one that cannot, but among equals the shorter drive wins, because
+    // the drive is time the scene spends moving away from the snapshot being planned against.
+    const ros::Time exact_started = ros::Time::now();
     const size_t exact = std::min<size_t>(static_cast<size_t>(config_.verify_exact), ranked.size());
     size_t       blocked_transit = 0;
     int          best_routable = 0;
+    double       best_value    = 0.0;
     best_held                  = 0;
     for (size_t i = 0; i < exact; ++i) {
         // Holds at full fidelity, because that is the number the planner will reproduce.
@@ -450,9 +462,11 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         }
         const Verdict route =
                 verify(grasps, ranked[i].second.pose, *grid, home, static_cast<size_t>(config_.verify_stride), true);
-        if (route.routable > best_routable || (route.routable == best_routable && solid.held > best_held)) {
+        const double value = solid.held - config_.search.travel_cost * ranked[i].second.travel;
+        if (!found || route.routable > best_routable || (route.routable == best_routable && value > best_value)) {
             best_routable   = route.routable;
             best_held       = solid.held;
+            best_value      = value;
             chosen          = ranked[i].second;
             chosen.admitted = solid.held;
             found           = true;
@@ -460,7 +474,8 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
     }
 
     const Verdict stay      = verify(grasps, Pose(), *grid, home, 1, true);
-    const double  screened_s = (ros::Time::now() - verify_started).toSec();
+    const double  screen_s  = (exact_started - verify_started).toSec();
+    const double  exact_s   = (ros::Time::now() - exact_started).toSec();
     if (blocked_transit > 0) {
         LOG_INFO("[park] %zu of the %zu best poses were refused because the drive would have put the arm through "
                  "the scene",
@@ -469,12 +484,14 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
     if (found && best_routable == 0) {
         LOG_WARN("[park] nothing in the box has a straight route from home; the planner will have to search for one");
     }
-    if (stay.routable > best_routable || (stay.routable == best_routable && stay.held > best_held)) {
+    // Staying put costs no travel, so its value is its holds and it wins every tie by default.
+    if (stay.routable > best_routable || (stay.routable == best_routable && stay.held > best_value)) {
         LOG_INFO("[park] staying put is no worse than anything found, so the vehicle does not move");
         chosen          = stayed;
         chosen.pose     = Pose();
         chosen.admitted = stay.held;
         best_held       = stay.held;
+        best_value      = stay.held;
         best_routable   = stay.routable;
         found           = true;
     }
@@ -513,10 +530,10 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         return;
     }
 
-    LOG_INFO("[park] screened %zu of %zu poses in %.1f s: staying holds %d routes to %d, chosen (%.3f %.3f %.3f, "
-             "%.1f deg) holds %d routes to %d",
-             screened, scored_count, screened_s, stay.held, stay.routable, chosen.pose.x, chosen.pose.y, chosen.pose.z,
-             kine::radToDeg(chosen.pose.yaw), best_held, best_routable);
+    LOG_INFO("[park] screened %zu of %zu poses in %.1f s, checked the best %zu exactly in %.1f s: staying holds %d "
+             "routes to %d, chosen (%.3f %.3f %.3f, %.1f deg) %.2f m out holds %d routes to %d",
+             screened, scored_count, screen_s, exact, exact_s, stay.held, stay.routable, chosen.pose.x, chosen.pose.y,
+             chosen.pose.z, kine::radToDeg(chosen.pose.yaw), chosen.travel, best_held, best_routable);
 
     // Latch the snapshot where it was taken, before anything moves. The candidates keep the
     // numbers cloud gave them; only the label changes, because the scene frame and the arm
@@ -545,23 +562,6 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         result.message = why;
         server_.setPreempted(result);
         return;
-    }
-
-    // Dead reckoning is imperfect, so the snapshot ends up slightly in the wrong place. Slip
-    // the scene frame rather than the body: the vehicle believes it arrived exactly, and it is
-    // the locked scene that is wrong, which is what drift actually does to you.
-    const double travelled =
-            std::hypot(std::hypot(chosen.pose.x, chosen.pose.y), chosen.pose.z);
-    if (config_.drift_per_metre > 0.0 || config_.drift_yaw_per_metre > 0.0) {
-        const double slip     = config_.drift_per_metre * travelled;
-        const double slip_yaw = config_.drift_yaw_per_metre * travelled;
-        std::lock_guard<std::mutex> lock(scene_mutex_);
-        Eigen::Isometry3d           error = Eigen::Isometry3d::Identity();
-        error.linear()      = Eigen::AngleAxisd(slip_yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix();
-        error.translation() = Eigen::Vector3d(slip, 0.0, 0.0);
-        locked_to_scene_    = error * locked_to_scene_;
-        LOG_WARN("[park] the locked scene slipped %.1f mm and %.2f deg over %.3f m driven", slip * 1000.0,
-                 kine::radToDeg(slip_yaw), travelled);
     }
 
     result.success = true;

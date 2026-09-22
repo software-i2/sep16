@@ -57,11 +57,6 @@ struct ParkConfig {
     double move_speed_m_s = 0.0;
     double move_rate_hz   = 0.0;
 
-    // How far the locked scene slips from the truth per metre driven. Zero is a vehicle that
-    // lands exactly where it was told, which no vehicle does.
-    double drift_per_metre     = 0.0;
-    double drift_yaw_per_metre = 0.0;
-
     std::string topic_joint_states;
     std::string action_park;
     std::string topic_park_result;
