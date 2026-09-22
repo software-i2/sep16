@@ -11,7 +11,7 @@ vehicle_footprint_m:                     # the hull's outline in arm_base, a pla
 link_radius_m: 0.020                     # collision radius around the upper arm, forearm, wrist tube and palm
 link_sample_step_m: 0.002                # spacing of collision samples along each link
 blade_sample_step_m: 0.0025              # spacing of collision samples over the jaw blades
-grasp_point_from_mount_m: 0.060          # where the handle sits between the blades: 0.040 is the throat, 0.0969 the tips
+grasp_point_from_mount_m: 0.070          # where the handle sits between the blades: 0.040 is the throat, 0.0969 the tips
 max_approach_deviation_deg: 0.0          # 0 turns the check off; otherwise the jaw must come in within this angle of the candidate's approach
 start_tolerance_deg: 1.5                 # a start reading this far past a joint limit is treated as on the limit
 joint_state_timeout_s: 0.5               # the start pose must come from joint_states newer than this
@@ -24,7 +24,7 @@ max_planning_time_s: 10.0                # stop trying more grasps after this
 
 rrt:                                     # bi-directional RRT-Connect, stopping at the first join
   max_iterations: 3000
-  time_budget_s: 0.2                     # per grasp
+  time_budget_s: 0.5                     # per grasp
   extend_step_deg: 57.2958               # longest single tree extension
   edge_check_step_deg: 1.0               # collision checks along every edge, no joint moves further between checks
   shortcut_attempts: 20                  # path quality comes from here, not from the search

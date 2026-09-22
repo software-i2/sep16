@@ -40,12 +40,12 @@ search:                                  # bounded so the pose search cannot exp
   min_grasps: 1                          # refuse to park anywhere holding fewer than this
   min_routable: 1                        # and do not move at all unless this many grasps have a route from
                                          # where the arm stands; arriving somewhere unworkable cannot be undone
-  standoff_min_m: 0.20                   # a grasp only counts while the camera is inside this band;
-  standoff_max_m: 0.30                   # nearer and the depth is rubbish, further and the arm cannot follow it in
+  standoff_min_m: 0.30                   # a grasp only counts while the camera is inside this band;
+  standoff_max_m: 0.40                   # nearer and the depth is rubbish, further and the arm cannot follow it in
   travel_cost_per_m: 0.0                 # grasps a metre of driving is worth giving up. The drive is time the
                                          # scene spends moving away from the snapshot, so a far pose has to hold
                                          # strictly more to win. Zero ranks on grasps alone, as it used to
-  verify_count: 1200                     # most poses to put through the full collision check
+  verify_count: 3000                     # most poses to put through the full collision check
   verify_budget_s: 10.0                  # and never spend longer than this doing it, whatever the count
   verify_blade_stride: 20                # screening tests every nth jaw sample; optimistic, so the winner is rechecked
   verify_exact_count: 10                 # best screened poses re-tested at full blade fidelity. Deliberately few:
