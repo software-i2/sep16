@@ -36,7 +36,7 @@ search:                                  # bounded so the pose search cannot exp
   coarse_step_deg: 9.0
   fine_step_m: 0.025
   fine_step_deg: 3.0
-  refine_count: 20                       # coarse cells to refine around
+  refine_count: 4                        # coarse cells to refine around
   min_grasps: 1                          # refuse to park anywhere holding fewer than this
   min_routable: 1                        # and do not move at all unless this many grasps have a route from
                                          # where the arm stands; arriving somewhere unworkable cannot be undone

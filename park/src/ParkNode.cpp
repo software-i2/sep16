@@ -370,9 +370,11 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
     feedback.stage = "searching";
     server_.publishFeedback(feedback);
 
+    const ros::Time     search_started = ros::Time::now();
     std::vector<Scored> shortlist;
     size_t              scored_count = 0;
     search_->shortlist(grasps, static_cast<size_t>(config_.verify_count), shortlist, scored_count);
+    const double search_s = (ros::Time::now() - search_started).toSec();
 
     // Reach says the grasp point can be placed; it says nothing about the arm that has to get
     // there. Maximising reach alone drives the vehicle as deep into the scene as it can and
@@ -530,9 +532,11 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
         return;
     }
 
-    LOG_INFO("[park] screened %zu of %zu poses in %.1f s, checked the best %zu exactly in %.1f s: staying holds %d "
+    LOG_INFO("[park] searched %zu poses in %.1f s, screened %zu of them in %.1f s, checked the best %zu exactly in "
+             "%.1f s: staying holds %d "
              "routes to %d, chosen (%.3f %.3f %.3f, %.1f deg) %.2f m out holds %d routes to %d",
-             screened, scored_count, screen_s, exact, exact_s, stay.held, stay.routable, chosen.pose.x, chosen.pose.y,
+             scored_count, search_s, screened, screen_s, exact, exact_s, stay.held, stay.routable, chosen.pose.x,
+             chosen.pose.y,
              chosen.pose.z, kine::radToDeg(chosen.pose.yaw), chosen.travel, best_held, best_routable);
 
     // Latch the snapshot where it was taken, before anything moves. The candidates keep the
