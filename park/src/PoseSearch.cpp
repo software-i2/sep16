@@ -3,7 +3,9 @@
 #include <park/PoseSearch.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <set>
 
 namespace park {
 namespace {
@@ -133,6 +135,17 @@ void PoseSearch::shortlist(const std::vector<Grasp> &grasps, size_t count, std::
     }
     std::sort(coarse.begin(), coarse.end(), [](const Scored &a, const Scored &b) { return a.score > b.score; });
 
+    // The fine sweep starts at each seed's own offset of zero, and the coarse grid below is added
+    // whole, so without this every seed and every coarse pose the fine steps land on is scored,
+    // shortlisted and then collision-checked twice against one verify budget.
+    std::set<std::array<long, 4>> seen;
+    const auto once = [&](const Pose &pose) {
+        const std::array<long, 4> key = {{std::lround(pose.x / box_.fine_step), std::lround(pose.y / box_.fine_step),
+                                          std::lround(pose.z / box_.fine_step),
+                                          std::lround(pose.yaw / box_.fine_yaw)}};
+        return seen.insert(key).second;
+    };
+
     std::vector<Scored> found;
     const size_t        refine = std::min<size_t>(std::max(1, box_.refine_count), coarse.size());
     for (size_t i = 0; i < refine; ++i) {
@@ -148,6 +161,9 @@ void PoseSearch::shortlist(const std::vector<Grasp> &grasps, size_t count, std::
                         pose.yaw = seed.yaw + dyaw;
                         if (std::fabs(pose.x) > box_.box_xy || std::fabs(pose.y) > box_.box_xy
                             || std::fabs(pose.z) > box_.box_z || std::fabs(pose.yaw) > box_.box_yaw) {
+                            continue;
+                        }
+                        if (!once(pose)) {
                             continue;
                         }
                         const Scored scored = scoreOne(grasps, pose);
@@ -166,7 +182,7 @@ void PoseSearch::shortlist(const std::vector<Grasp> &grasps, size_t count, std::
     // the coarse grid is at least spread across the box and gives the collision check
     // somewhere further back to find.
     for (const Scored &option : coarse) {
-        if (option.admitted >= box_.min_grasps) {
+        if (option.admitted >= box_.min_grasps && once(option.pose)) {
             found.push_back(option);
         }
     }

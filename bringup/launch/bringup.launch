@@ -6,7 +6,6 @@
     <arg name="bag" default="" doc="path to a recorded bag, replayed in a loop instead of the live camera"/>
     <arg name="bag_rate" default="10.0" doc="bag replay speed; captures_grasp_poses.bag is a frame every 10 s, then every 5 s, with a 90 s hole in the middle"/>
     <arg name="task" default="true" doc="start the task state machine"/>
-    <arg name="park" default="true" doc="start the vehicle parking search; it owns world_locked -&gt; vehicle_base"/>
     <arg name="viz" default="true" doc="start the viz node"/>
     <arg name="foxglove" default="true" doc="start foxglove_bridge"/>
     <arg name="outlier_filter" default="true" doc="drop flying pixels before building the obstacle map"/>
@@ -42,7 +41,7 @@
 
     <node name="driver" pkg="driver" type="driver_node" output="screen" required="true"/>
     <node name="cloud" pkg="cloud" type="cloud_node" output="screen"/>
-    <node if="$(arg park)" name="park" pkg="park" type="park_node" output="screen"/>
+    <node name="park" pkg="park" type="park_node" output="screen"/>
     <node name="planner" pkg="planner" type="planner_node" output="screen"/>
     <node name="executor" pkg="executor" type="executor_node" output="screen"/>
     <node if="$(arg task)" name="task" pkg="task" type="task_node" output="screen"/>

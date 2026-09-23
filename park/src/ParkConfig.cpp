@@ -72,6 +72,7 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     }
 
     c.move_speed_m_s = vehicle.number("move/speed_m_s");
+    c.move_yaw_speed = kine::degToRad(vehicle.number("move/yaw_speed_deg_s"));
     c.move_rate_hz   = vehicle.number("move/rate_hz");
 
     c.topic_joint_states = topics.text("joint_states");
@@ -105,6 +106,7 @@ ParkConfig loadParkConfig(params::Params &vehicle, params::Params &arm, params::
     vehicle.require(c.transit_samples > 0, "search/transit_samples", "positive");
     vehicle.require(c.min_routable >= 0, "search/min_routable", "zero or more");
     vehicle.require(c.move_speed_m_s > 0.0, "move/speed_m_s", "positive");
+    vehicle.require(c.move_yaw_speed > 0.0, "move/yaw_speed_deg_s", "positive");
     vehicle.require(c.move_rate_hz > 0.0, "move/rate_hz", "positive");
     return c;
 }

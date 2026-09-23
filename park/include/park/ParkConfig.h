@@ -55,6 +55,7 @@ struct ParkConfig {
     kine::JointAngles arm_home{};  // reported radians, the pose the arm plans from
 
     double move_speed_m_s = 0.0;
+    double move_yaw_speed = 0.0;
     double move_rate_hz   = 0.0;
 
     std::string topic_joint_states;

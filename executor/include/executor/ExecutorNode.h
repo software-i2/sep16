@@ -24,7 +24,7 @@ private:
     void onExecute(const msgs::ExecuteGoalConstPtr &goal);
 
     bool readPath(const msgs::JointPath &path, std::vector<kine::JointAngles> &corners, std::string &why) const;
-    bool freshJoints(kine::JointAngles &joints);
+    bool freshJoints(kine::JointAngles &joints, ros::Time &stamp);
     void sendTarget(const kine::JointAngles &target);
     void releaseArm();
     void finish(uint8_t outcome, const std::string &message);

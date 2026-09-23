@@ -23,12 +23,13 @@ void ExecutorNode::onJointStates(const sensor_msgs::JointState::ConstPtr &msg) {
     latest_joints_ = *msg;
 }
 
-bool ExecutorNode::freshJoints(kine::JointAngles &joints) {
+bool ExecutorNode::freshJoints(kine::JointAngles &joints, ros::Time &stamp) {
     std::lock_guard<std::mutex> lock(joints_mutex_);
     if (latest_joints_.name.empty()
         || (ros::Time::now() - latest_joints_.header.stamp).toSec() > config_.feedback_timeout_s) {
         return false;
     }
+    stamp = latest_joints_.header.stamp;
     for (int j = 0; j < kine::JOINT_COUNT; ++j) {
         const auto found = std::find(latest_joints_.name.begin(), latest_joints_.name.end(), config_.joint_names[j]);
         const size_t index = static_cast<size_t>(found - latest_joints_.name.begin());
@@ -113,7 +114,8 @@ void ExecutorNode::onExecute(const msgs::ExecuteGoalConstPtr &goal) {
     }
 
     kine::JointAngles joints;
-    if (!freshJoints(joints)) {
+    ros::Time         stamp;
+    if (!freshJoints(joints, stamp)) {
         finish(msgs::ExecuteResult::REFUSED, "refused: no fresh joint_states");
         return;
     }
@@ -141,10 +143,15 @@ void ExecutorNode::onExecute(const msgs::ExecuteGoalConstPtr &goal) {
             return;
         }
 
-        if (freshJoints(joints)) {
-            follower.measure(joints);
-        } else {
+        // The driver publishes slower than this loop runs, so the same reading comes back several
+        // ticks running. Only a new stamp is a new measurement.
+        ros::Time seen;
+        if (!freshJoints(joints, seen)) {
             follower.loseMeasurement();
+            stamp = ros::Time();
+        } else if (seen != stamp) {
+            stamp = seen;
+            follower.measure(joints);
         }
 
         kine::JointAngles target;

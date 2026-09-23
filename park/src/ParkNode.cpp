@@ -13,6 +13,10 @@
 namespace park {
 namespace {
 
+// Below these the vehicle is where it was asked to go and there is nothing to drive.
+constexpr double kStillDistance = 1e-9;
+constexpr double kStillYaw      = 1e-9;
+
 Eigen::Isometry3d fromParts(const std::array<double, 3> &position, const std::array<double, 3> &rpy) {
     Eigen::Isometry3d out = Eigen::Isometry3d::Identity();
     out.linear()          = (Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ())
@@ -290,7 +294,18 @@ bool ParkNode::walkTo(const Pose &target, std::string &why) {
         start = where_;
     }
     const double distance = std::hypot(std::hypot(target.x - start.x, target.y - start.y), target.z - start.z);
-    const int    steps = std::max(1, static_cast<int>(std::ceil(distance / config_.move_speed_m_s * config_.move_rate_hz)));
+    const double turn     = std::fabs(target.yaw - start.yaw);
+
+    // Electing to stay is not a drive. Stepping it anyway publishes a moving feedback, and the
+    // caller counts that as a parking spot spent, which is the one thing staying put must not cost.
+    if (distance < kStillDistance && turn < kStillYaw) {
+        return true;
+    }
+
+    // Both axes, or a pose that only turns arrives in one tick: the drive the arm was checked
+    // against over transit_samples is not the drive that then happens.
+    const double seconds = std::max(distance / config_.move_speed_m_s, turn / config_.move_yaw_speed);
+    const int    steps   = std::max(1, static_cast<int>(std::ceil(seconds * config_.move_rate_hz)));
 
     // The setpoint a real vehicle would be handed, in the frame it would be handed it in. Once,
     // not per step: the steps are this node pretending to be the controller.
@@ -570,7 +585,7 @@ void ParkNode::onPark(const msgs::ParkGoalConstPtr &goal) {
 
     result.success = true;
     result.message = "parked, " + std::to_string(chosen.admitted) + " of " + std::to_string(grasps.size())
-                     + " parking spots in reach";
+                     + " candidates in reach";
     server_.setSucceeded(result);
 }
 

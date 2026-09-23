@@ -49,12 +49,15 @@ search:                                  # bounded so the pose search cannot exp
   verify_budget_s: 10.0                  # and never spend longer than this doing it, whatever the count
   verify_blade_stride: 20                # screening tests every nth jaw sample; optimistic, so the winner is rechecked
   verify_exact_count: 10                 # best screened poses re-tested at full blade fidelity. Deliberately few:
-                                         # this stage has no time budget, and all three failing costs only a
+                                         # this stage has no time budget, and all of them failing costs only a
                                          # stay-put and a fresh collect, which is cheaper than a stale scene
   transit_samples: 16                    # points along the drive where the arm is checked against the scene
 
 move:                                    # the simulated vehicle; a real one takes a setpoint instead
   speed_m_s: 0.05
+  yaw_speed_deg_s: 10.0                  # a pose that only turns is paced by this; without it a 45 deg
+                                         # park arrives in one tick and never runs the drive that
+                                         # search/transit_samples checked the arm against
   rate_hz: 20.0
 
 reach_table:

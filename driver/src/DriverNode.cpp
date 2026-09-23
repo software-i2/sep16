@@ -155,7 +155,11 @@ bool DriverNode::onStandby(std_srvs::Trigger::Request & /*req*/, std_srvs::Trigg
         res.success &= arm_->setStandby(joint.device_id);
     }
     res.message = res.success ? "every joint released" : "a standby command could not be written";
-    LOG_WARN("[driver] %s", res.message.c_str());
+    if (res.success) {
+        LOG_INFO("[driver] %s", res.message.c_str());
+    } else {
+        LOG_ERROR("[driver] %s", res.message.c_str());
+    }
     return true;
 }
 

@@ -4,7 +4,10 @@
 frames_to_collect: 5                     # frames in the window when either averaging switch is on, otherwise 1; every collect takes them fresh
 
 frame_timeout_s: 30.0                    # give up if the frames have not arrived within this; frames without grasp poses are skipped, so this covers the gaps too
-transform_wait_s: 0.2                    # how long to wait for the camera transform at the frame's own stamp
+transform_wait_s: 0.2                    # how long to wait for the camera transform. Looked up at the latest
+                                         # available time, not at the frame's own stamp: a replayed bag is
+                                         # stamped on the recording's clock, and frames are only collected
+                                         # while the vehicle holds station
 anchor_frame: camera_anchor              # treat every cloud as seen from this frame rather than from camera_link;
                                          # empty uses camera_link, which on a replayed bag drags the scene along
                                          # with the vehicle
@@ -38,7 +41,7 @@ corridor_carving:                        # obstacle voxels in front of each hand
   length_m: 0.04
   radius_m: 0.02
 
-candidate_averaging:                     # off by default: see switches/candidate_averaging in bringup.launch
+candidate_averaging:                     # on by default: see switches/candidate_averaging in bringup.launch
   method: consensus                     # consensus: keep only spots enough frames agree on, averaged
   consensus:
     min_agreeing_frames: 2

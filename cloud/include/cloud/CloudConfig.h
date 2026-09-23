@@ -75,8 +75,9 @@ struct CloudConfig {
     double transform_wait_s  = 0.0;
     double frame_timeout_s   = 0.0;
     double voxel_size        = 0.0;
-    double candidate_reach   = 0.0;  // how far the jaw tips can get from the arm base origin
-    double crop_radius       = 0.0;  // candidate_reach plus crop_margin: how far the arm could reach after a park move
+    double candidate_reach   = 0.0;  // how far the jaw tips can get from the arm base origin, as it stands
+    double crop_radius       = 0.0;  // candidate_reach plus crop_margin: how far it could reach after a park move,
+                                     // and what both the grid and the candidates are cropped to
     double crop_margin       = 0.0;
     int    approach_column   = 0;
     int    bar_column        = 0;

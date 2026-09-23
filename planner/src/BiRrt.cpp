@@ -21,10 +21,14 @@ double secondsSince(const Clock::time_point &start) {
 }  // namespace
 
 BiRrt::BiRrt(CollisionChecker &checker, const RrtSettings &settings, const kine::JointAngles &weights)
-        : checker_(checker), settings_(settings), weights_(weights) {}
+        : checker_(checker), settings_(settings), weights_(weights) {
+    // Seeded here and not in plan(): reseeding per call hands every grasp in a run the same
+    // random stream, so the second goal re-walks the first one's search. The seed still makes a
+    // whole planning run repeatable, which is what random_seed is for.
+    random_.seed(static_cast<uint64_t>(settings_.random_seed));
+}
 
 bool BiRrt::plan(const kine::JointAngles &start, const kine::JointAngles &goal, JointPath &corners, double budget_s) {
-    random_.seed(static_cast<uint64_t>(settings_.random_seed));
     corners.clear();
     started_ = Clock::now();
     budget_  = budget_s;

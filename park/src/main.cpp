@@ -22,8 +22,9 @@ int main(int argc, char **argv) {
             park::loadParkConfig(vehicle_params, arm_params, jaws_params, planner_params, camera_params,
                                  topics_params);
 
-    const std::string problems = vehicle_params.errors() + arm_params.errors() + jaws_params.errors()
-                                 + planner_params.errors() + camera_params.errors() + topics_params.errors();
+    const std::string problems = vehicle_params.errors() + vehicle_params.unreadKeys() + arm_params.errors()
+                                 + jaws_params.errors() + planner_params.errors() + camera_params.errors()
+                                 + topics_params.errors();
     if (!problems.empty()) {
         LOG_ERROR("[park] configuration is not usable:\n%s", problems.c_str());
         return 1;

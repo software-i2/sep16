@@ -19,6 +19,8 @@ public:
     // Cuts the joint-space lines between corners into waypoints; the first corner is where the arm already is.
     void load(const std::vector<kine::JointAngles> &corners);
 
+    // One joint reading. The follower ticks faster than the driver publishes, so only a reading
+    // it has not seen before is allowed to decide whether a joint is keeping up.
     void measure(const kine::JointAngles &joints);
     void loseMeasurement();
 
@@ -45,6 +47,7 @@ private:
     kine::JointAngles previous_{};
     bool              have_now_      = false;
     bool              have_previous_ = false;
+    bool              unjudged_      = false;  // a reading arrived since the last tick that judged one
     int               strikes_       = 0;
     int               blocked_joint_ = -1;
 };

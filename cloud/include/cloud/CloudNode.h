@@ -34,6 +34,9 @@ private:
     msgs::CloudResult toMessage(const CloudOutput &output, size_t frames_used, bool fresh) const;
     void              finishFailed(const std::string &why, bool fresh);
 
+    // A survey that saw the scene and found no handle in it. Not a fault: the caller looks again.
+    void finishEmpty(const std::string &why, bool fresh);
+
     CloudConfig                                        config_;
     const CloudPipeline                               &pipeline_;
     actionlib::SimpleActionServer<msgs::CollectAction> server_;
@@ -46,6 +49,7 @@ private:
     std::deque<CameraFrame>            frames_;
     bool                               subscribed_ = false;
     std::string                        frame_problem_;
+    size_t                             poseless_ = 0;  // well-formed frames the camera sent with no grasp poses
 
     DECLARE_ROS_SUBSCRIBER(sub_cloud_, sensor_msgs::PointCloud2)
     DECLARE_ROS_SUBSCRIBER(sub_grasp_poses_, geometry_msgs::PoseArray)

@@ -33,19 +33,27 @@ void PathFollower::load(const std::vector<kine::JointAngles> &corners) {
 void PathFollower::measure(const kine::JointAngles &joints) {
     now_      = joints;
     have_now_ = true;
+    unjudged_ = true;
 }
 
 // A stale reading must not count as arrival or as a joint that stopped.
 void PathFollower::loseMeasurement() {
     have_now_      = false;
     have_previous_ = false;
+    unjudged_      = false;
     strikes_       = 0;
 }
 
 FollowState PathFollower::tick(double now_s, kine::JointAngles &target, bool &send) {
     send = false;
+    // Waypoints go out every tick, because that is the speed limit. A verdict on whether the arm
+    // is following only comes from a reading that has not been compared yet: judging the same
+    // reading twice reads as a joint that stopped, and enough of those is a false collision.
+    const bool judge = unjudged_;
+    unjudged_        = false;
+
     if (state_ == FollowState::SENDING) {
-        if (strike(jointNotFollowing())) {
+        if (judge && strike(jointNotFollowing())) {
             return state_;
         }
         target = waypoints_[next_++];
@@ -62,7 +70,7 @@ FollowState PathFollower::tick(double now_s, kine::JointAngles &target, bool &se
     }
     if (arrived()) {
         state_ = FollowState::REACHED;
-    } else if (!strike(jointNotClosingIn()) && now_s - settle_start_s_ > settings_.arrival_timeout_s) {
+    } else if (!(judge && strike(jointNotClosingIn())) && now_s - settle_start_s_ > settings_.arrival_timeout_s) {
         state_ = FollowState::STALLED;
     }
     return state_;

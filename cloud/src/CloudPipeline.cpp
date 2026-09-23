@@ -55,8 +55,12 @@ CloudPipeline::FrameResult CloudPipeline::processFrame(const CameraFrame &frame,
         result.poses.push_back(transformPose(frame.camera_to_base, pose));
     }
 
+    // Cropped to where the arm could reach after a park move, not to where it stands. Cropping
+    // at the arm's own reach leaves the park search nothing out of reach to drive towards, which
+    // is the only thing it is there to fix; anything still out of reach after the move comes back
+    // from the planner as unreachable, which costs two IK solves and no collision checks.
     for (const GraspPose &pose : result.poses) {
-        if (pose.point.norm() <= config_.candidate_reach) {
+        if (pose.point.norm() <= config_.crop_radius) {
             result.candidates.push_back(pose);
         }
     }

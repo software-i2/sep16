@@ -39,7 +39,16 @@ void CloudNode::onGraspPoses(const geometry_msgs::PoseArray::ConstPtr &msg) {
 }
 
 void CloudNode::pairLatest() {
-    if (!latest_cloud_ || !latest_poses_ || latest_cloud_->header.stamp != latest_poses_->header.stamp) {
+    if (!latest_cloud_ || !latest_poses_) {
+        return;
+    }
+    // Both arrived but they do not belong together. Recorded rather than ignored: publishers
+    // that never share a stamp pair up never, and the window then just times out saying nothing.
+    if (latest_cloud_->header.stamp != latest_poses_->header.stamp) {
+        char line[160];
+        std::snprintf(line, sizeof(line), "the cloud and the grasp poses do not share a stamp (%.3f and %.3f)",
+                      latest_cloud_->header.stamp.toSec(), latest_poses_->header.stamp.toSec());
+        frame_problem_ = line;
         return;
     }
     CameraFrame frame;
@@ -64,6 +73,7 @@ bool CloudNode::toFrame(const sensor_msgs::PointCloud2 &cloud, const geometry_ms
         return false;
     }
     if (poses.poses.empty()) {
+        ++poseless_;
         why = "the frame came with no grasp poses";
         return false;
     }
@@ -128,6 +138,25 @@ void CloudNode::finishFailed(const std::string &why, bool fresh) {
     server_.setAborted(result, why);
 }
 
+// The camera answered and the scene held no handle. The obstacle map is left empty on purpose:
+// it is built from the frames that carried poses, and there were none. The caller reads this as
+// a survey with nothing in view and looks again, which is what the retry budgets are for.
+void CloudNode::finishEmpty(const std::string &why, bool fresh) {
+    msgs::CollectResult result;
+    result.cloud.header.stamp    = ros::Time::now();
+    result.cloud.header.frame_id = config_.base_frame;
+    result.cloud.success         = true;
+    result.cloud.fresh           = fresh;
+    result.cloud.summary         = why;
+    // A zero voxel size is what an unusable map looks like to ObstacleGrid, and nothing should
+    // be able to turn an empty survey into a throw further down the line.
+    result.cloud.obstacles.header       = result.cloud.header;
+    result.cloud.obstacles.voxel_size_m = config_.voxel_size;
+    LOG_WARN("[cloud] %s", why.c_str());
+    PUBLISH_ROS(pub_result_, result.cloud);
+    server_.setSucceeded(result, why);
+}
+
 void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
     const bool   averaging = config_.switches.candidate_averaging || config_.switches.obstacle_averaging;
     const size_t needed    = averaging ? static_cast<size_t>(config_.frames_to_collect) : 1;
@@ -138,6 +167,7 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
         std::lock_guard<std::mutex> lock(frames_mutex_);
         frame_problem_.clear();
         frames_.clear();
+        poseless_ = 0;
     }
     if (!subscribed_) {
         INIT_ROS_SUBSCRIBER(sub_cloud_, config_.topic_cloud, 1, &CloudNode::onCloud);
@@ -168,6 +198,21 @@ void CloudNode::onCollect(const msgs::CollectGoalConstPtr &goal) {
             return;
         }
         if (ros::Time::now() > deadline) {
+            size_t poseless = 0;
+            {
+                std::lock_guard<std::mutex> lock(frames_mutex_);
+                poseless = poseless_;
+            }
+            // A camera that is producing frames the vision found no handle in is a survey with
+            // nothing in view, not a fault. Only silence is a fault, which is what this timeout
+            // is named for. Frames that did arrive mean something else went wrong as well, and
+            // that is worth the abort: a camera this intermittent is not a scene report.
+            if (poseless > 0 && feedback.frames_collected == 0) {
+                finishEmpty("no handle in view: " + std::to_string(poseless) + " frame(s) in "
+                                    + std::to_string(config_.frame_timeout_s) + " s carried no grasp poses",
+                            goal->fresh);
+                return;
+            }
             finishFailed("only " + std::to_string(feedback.frames_collected) + " of " + std::to_string(needed)
                          + " frames buffered within " + std::to_string(config_.frame_timeout_s) + " s"
                          + (problem.empty() ? "" : "; last problem: " + problem),

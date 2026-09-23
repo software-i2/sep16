@@ -1,9 +1,10 @@
 # Collect frames from the camera topics and turn them into candidates and an obstacle map.
 
-# Throw away everything already buffered and wait for a whole window of new frames, sized by
-# cloud.yaml's fresh_collect. Set this once the vehicle has moved: frames taken before the move
-# saw the scene from somewhere else, and blending them into the window puts the handle in two
-# places at once.
+# Labels the result as the re-measurement taken after the vehicle parked, rather than the survey
+# that chose where to park. It selects nothing here: every collect already throws the buffer away
+# and waits for a whole fresh window, because frames taken before the goal was sent may have seen
+# the arm moving through the view or been taken from somewhere the vehicle has left. The label is
+# carried through to CloudResult.fresh so the two passes can be told apart downstream.
 bool fresh
 ---
 CloudResult cloud
